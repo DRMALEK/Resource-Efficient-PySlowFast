@@ -1,0 +1,63 @@
+TRAIN:
+  ENABLE: False
+  DATASET: meccano
+  BATCH_SIZE: 32
+  EVAL_PERIOD: 10
+  CHECKPOINT_PERIOD: 1
+  AUTO_RESUME: True
+  
+DATA:
+  PATH_TO_DATA_DIR: '/home/milkyway/Desktop/Student Thesis/Datasets/RGB_frames/'
+  NUM_FRAMES: 16
+  SAMPLING_RATE: 2
+  TRAIN_JITTER_SCALES: [256, 320]
+  TRAIN_CROP_SIZE: 224
+  TEST_CROP_SIZE: 256
+  INPUT_CHANNEL_NUM: [3]
+
+# Framework required config fileds!
+RESNET:
+  ZERO_INIT_FINAL_BN: True
+  TRANS_FUNC: x3d_transform
+  STRIDE_1X1: False
+BN:
+  USE_PRECISE_STATS: True
+  NUM_BATCHES_PRECISE: 200
+  WEIGHT_DECAY: 0.0
+
+SOLVER:
+  BASE_LR: 0.1 # 1 machine
+  BASE_LR_SCALE_NUM_SHARDS: True
+  LR_POLICY: cosine
+  MAX_EPOCH: 120
+  WEIGHT_DECAY: 5e-5
+  WARMUP_EPOCHS: 35.0
+  WARMUP_START_LR: 0.01
+  OPTIMIZING_METHOD: sgd
+
+MODEL:
+  NUM_CLASSES: 61
+  ARCH: 'mobilenet'
+  MODEL_NAME: 'MobileNet'
+  LOSS_FUNC: cross_entropy
+  DROPOUT_RATE: 0.2
+  WIDTH_MULT: 1
+
+TEST:
+  ENABLE: True
+  DATASET: meccano
+  BATCH_SIZE: 120
+  NUM_SPATIAL_CROPS: 3
+
+DATA_LOADER:
+  NUM_WORKERS: 8
+  PIN_MEMORY: True
+
+NUM_GPUS: 1
+
+RNG_SEED: 0
+
+OUTPUT_DIR: './results/3DMobileNet_exp1'
+
+TENSORBOARD:
+  ENABLE: True
