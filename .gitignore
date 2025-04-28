@@ -179,3 +179,4 @@ detectron2/
 venv/
 pytorchvideo/
 venv2/
+baseline/
