@@ -1263,6 +1263,23 @@ _C.DEMO.SLOWMO = 1
 # Add custom config with default values.
 custom_config.add_custom_config(_C)
 
+# ---------------------------------------------------------------------------- #
+# Quantization options
+# ---------------------------------------------------------------------------- #
+_C.QUANTIZATION = CfgNode()
+
+# Enable Quantization
+_C.QUANTIZATION.ENABLE = False
+
+# Enable Quantization Aware Training (QAT)
+_C.QUANTIZATION.QAT = False
+
+# Backend for quantization ('fbgemm' for x86, 'qnnpack' for ARM)
+_C.QUANTIZATION.BACKEND = 'fbgemm'
+
+# Number of batches to calibrate with for post-training quantization
+_C.QUANTIZATION.CALIBRATION_NUM_BATCHES = 10
+
 
 def assert_and_infer_cfg(cfg):
     # BN assertions.

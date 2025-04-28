@@ -26,62 +26,43 @@ def parse_args():
         "--cfg",
         dest="cfg_file",
         help="Path to the config file",
-        default="configs/MobileNet.yaml",
+        default="/home/milkyway/Desktop/Student Thesis/Slowfast/results/i3d_8x8_r50_exp1/I3D_8x8_R50.yaml",
         type=str,
     )
     parser.add_argument(
         "--checkpoint_file",
         help="Path to the checkpoint file",
-        default="/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/results/3DMobileNet_exp1/checkpoints/checkpoint_epoch_00040.pyth",
+        default="/home/milkyway/Desktop/Student Thesis/Slowfast/results/i3d_8x8_r50_exp1/checkpoints/checkpoint_epoch_00080.pyth",
         type=str,
     )
     return parser.parse_args()
 
 
-# This function measures the frames per second (FPS) of a model during inference.
-def measure_fps(model, inputs, num_warmup=50, num_iterations=200):
+# This function measures CPU inference time using torch.autograd.profiler.profile.
+def measure_cpu_time_and_fps(model, inputs, num_warmup=50, num_iterations=1000):
     # Warm up
     for _ in range(num_warmup):
         model(inputs)
     
-    # Measure inference time
-    torch.cuda.synchronize() 
-    start_time = time.time()
+    # Measure inference time using profiler
+    with torch.autograd.profiler.profile(use_cuda=False) as prof:
+        for _ in tqdm(range(num_iterations)):
+            model(inputs)
     
-    for _ in tqdm(range(num_iterations)):
-        model(inputs)
-    
-    torch.cuda.synchronize()
-    end_time = time.time()
-    
-    # Calculate FPS
-    elapsed_time = end_time - start_time
-    # Number of clips × number of frames per clip
-    total_frames = num_iterations * inputs[0].shape[2]  # Assuming inputs[0] shape is [B, C, T, H, W]
-    fps = total_frames / elapsed_time
-    
-    return fps, elapsed_time, total_frames
-
-# This function Mesuare CPU Inference (By averaging the time taken for 1000 forward passes)
-def measure_cpu_time(model, inputs, num_warmup=50, num_iterations=1000):
-    # Warm up
-    for _ in range(num_warmup):
-        model(inputs)
-    
-    # Measure inference time
-    torch.cuda.synchronize()
-    start_time = time.time()
-    
-    for _ in tqdm(range(num_iterations)):
-        model(inputs)
-    
-    torch.cuda.synchronize()
-    end_time = time.time()
+    # Print detailed profiling information
+    print("\nDetailed CPU Profiling Information:")
+    print(prof.key_averages().table(sort_by="self_cpu_time_total"))
     
     # Calculate average time per forward pass
-    elapsed_time = (end_time - start_time) / num_iterations
+    print(prof.self_cpu_time_total)
+    elapsed_time = prof.self_cpu_time_total / 1000000  # Convert from microsecond to seconds
+    cpu_time_for_one_iteration = elapsed_time  / num_iterations  # Convert from milliseconds to seconds
     
-    return elapsed_time, num_iterations
+    # Calcaute fbs
+    total_frames = num_iterations * inputs[0].shape[2]  # Assuming inputs[0] shape is [B, C, T, H, W]
+    fps = total_frames / elapsed_time
+
+    return cpu_time_for_one_iteration, fps, total_frames, num_iterations
 
 
 def main():
@@ -89,11 +70,16 @@ def main():
     
     # Load config
     cfg = get_cfg()
+
+
     if args.cfg_file is not None:
         cfg.merge_from_file(args.cfg_file)
-    if args.opts is not None:
-        cfg.merge_from_list(args.opts)
+    #if args.opts is not None:
+    #    cfg.merge_from_list(args.opts)
     
+    cfg.NUM_GPUS = 0 # Test on CPU
+
+
     # Set up environment
     du.init_distributed_training(cfg)
     
@@ -150,16 +136,14 @@ def main():
         
         # Measure FPS and CPU time
         with torch.no_grad():
-            fps, elapsed_time, total_frames = measure_fps(model, batch_inputs)
-            cpu_time = measure_cpu_time(model, batch_inputs)
+            print(batch_inputs[0].shape)
+            cpu_time, fps, _, _ = measure_cpu_time_and_fps(model, batch_inputs, num_warmup=50, num_iterations=1000)
 
 
         print(f"\nResults for batch size {batch_size}:")
-        print(f"  - Total frames processed: {total_frames}")
-        print(f"  - Elapsed time: {elapsed_time:.2f} seconds")
         print(f"  - Average FPS: {fps:.2f}")
         print(f"  - Time per frame: {1000/fps:.2f} ms")
-        print(f"  - Average CPU time per forward pass: {cpu_time:.4f} seconds")
+        print(f"  - Average CPU time per forward pass: {cpu_time} seconds")
     
     # Model information
     params = sum(p.numel() for p in model.parameters())
@@ -171,7 +155,7 @@ def main():
 
     # Calculate model FLOPs
     inputs_flops = [inp[0:1].clone() for inp in inputs]  # Take only the first item in batch for FLOP calculation
-    flops, _ = misc.log_model_info(model, cfg, inputs=inputs_flops)
+    flops, _ = misc.log_model_info(model, cfg, use_train_input=False)
     print(f"Model FLOPs: {flops:,}")
 
 if __name__ == "__main__":
