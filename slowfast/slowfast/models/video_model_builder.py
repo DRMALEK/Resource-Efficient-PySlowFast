@@ -423,7 +423,18 @@ class SlowFast(nn.Module):
 
     def forward(self, x, bboxes=None):
         x = x[:]  # avoid pass by reference
+
+  #      print("SlowFast forward")
+ #       print(x.shape)
+#        print(x[0].shape)
+
+        #print("SlowFast forward")  
+        #print(x[0].shape)
+        #print(x[1].shape)
+        #print(len(x))
+
         x = self.s1(x)
+
         x = self.s1_fuse(x)
         x = self.s2(x)
         x = self.s2_fuse(x)

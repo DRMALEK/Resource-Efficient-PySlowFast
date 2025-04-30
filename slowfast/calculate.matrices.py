@@ -26,13 +26,13 @@ def parse_args():
         "--cfg",
         dest="cfg_file",
         help="Path to the config file",
-        default="/home/milkyway/Desktop/Student Thesis/Slowfast/results/i3d_8x8_r50_exp1/I3D_8x8_R50.yaml",
+        default="/home/milkyway/Desktop/Student Thesis/Slowfast/baseline/slowfast/SLOWFAST_8x8_R50_MECCANO.yaml",
         type=str,
     )
     parser.add_argument(
         "--checkpoint_file",
         help="Path to the checkpoint file",
-        default="/home/milkyway/Desktop/Student Thesis/Slowfast/results/i3d_8x8_r50_exp1/checkpoints/checkpoint_epoch_00080.pyth",
+        default="/home/milkyway/Desktop/Student Thesis/Slowfast/baseline/slowfast/SLOWFAST_8x8_R50_RGB_MECCANO.pyth",
         type=str,
     )
     return parser.parse_args()
@@ -99,20 +99,16 @@ def main():
     model.eval()
     
     # Create random input
-    if cfg.MODEL.ARCH in cfg.MODEL.SINGLE_PATHWAY_ARCH:
-        # For single pathway models like MobileNet
-        rgb_dimension = 3
-        input_tensors = torch.rand(
-            1,  # batch size
-            rgb_dimension,
-            cfg.DATA.NUM_FRAMES,
-            cfg.DATA.TEST_CROP_SIZE,
-            cfg.DATA.TEST_CROP_SIZE,
-        )
-
-
-    inputs = pack_pathway_output(cfg, input_tensors)  # list of tensors (channels, time, height, width)
+    rgb_dimension = 3
+    input_tensors = torch.rand(
+        rgb_dimension,
+        cfg.DATA.NUM_FRAMES,
+        cfg.DATA.TEST_CROP_SIZE,
+        cfg.DATA.TEST_CROP_SIZE,
+    )
     
+    inputs = pack_pathway_output(cfg, input_tensors)  # list of tensors (channels, time, height, width)
+
     if cfg.NUM_GPUS:
         # Transfer the data to the current GPU device
         if isinstance(inputs, (list,)):
@@ -121,8 +117,6 @@ def main():
         else:
             inputs = inputs.cuda(non_blocking=True)
     
-    # Measure FPS for different batch sizes
-    #batch_sizes = [1, 2, 4, 8, 16]
     batch_sizes = [1]
 
     print("\nMeasuring inference speed...")
