@@ -5,7 +5,7 @@
 
 import math
 import pprint
-
+import os
 import numpy as np
 
 import slowfast.models.losses as losses
@@ -17,6 +17,7 @@ import slowfast.utils.metrics as metrics
 import slowfast.utils.misc as misc
 import slowfast.visualization.tensorboard_vis as tb
 import torch
+from torch.quantization import get_default_qat_qconfig, prepare_qat, convert
 from fvcore.nn.precise_bn import get_bn_modules, update_bn_stats
 from slowfast.datasets import loader
 from slowfast.datasets.mixup import MixUp
@@ -526,6 +527,16 @@ def train(cfg):
 
     # Construct the optimizer.
     optimizer = optim.construct_optimizer(model, cfg)
+    
+    # Apply quantization configuration
+    if cfg.QUANTIZATION.ENABLE and cfg.QUANTIZATION.QAT:
+        logger.info("Preparing model for quantization-aware training")
+          
+        # Prepare the model for QAT
+        prepare_qat(model, inplace=True)
+        
+        logger.info("Model prepared for Quantization Aware Training (QAT)")
+
     # Create a GradScaler for mixed precision training
     scaler = torch.cuda.amp.GradScaler(enabled=cfg.TRAIN.MIXED_PRECISION)
 
@@ -606,6 +617,10 @@ def train(cfg):
         writer = tb.TensorboardWriter(cfg)
     else:
         writer = None
+
+
+    if cfg.QUANTIZATION.ENABLE and cfg.QUANTIZATION.QAT:
+        logger.info("Starting quantization-aware training...")
 
     # Perform the training loop.
     logger.info("Start epoch: {}".format(start_epoch + 1))
@@ -735,6 +750,20 @@ def train(cfg):
         start_epoch == cfg.SOLVER.MAX_EPOCH and not cfg.MASK.ENABLE
     ):  # final checkpoint load
         eval_epoch(val_loader, model, val_meter, start_epoch, cfg, train_loader, writer)
+    
+    
+    # Convert the model to fully quantized version after training
+    if cfg.QUANTIZATION.ENABLE and cfg.QUANTIZATION.QAT:
+    # Convert the trained model to quantized format
+        logger.info("Converting model to quantized format...")
+        model.eval()
+        model = model.convert_to_quantized_model()
+        
+        # Save the quantized model
+        quantized_model_path = os.path.join(cfg.OUTPUT_DIR, "quantized_model.pth")
+        torch.save(model.state_dict(), quantized_model_path)
+        logger.info(f"Quantized model saved to {quantized_model_path}")
+        
     if writer is not None:
         writer.close()
     result_string = (

@@ -5,7 +5,8 @@ TRAIN:
   EVAL_PERIOD: 10
   CHECKPOINT_PERIOD: 10
   AUTO_RESUME: True
-  CHECKPOINT_TYPE: pytorch
+  #CHECKPOINT_TYPE: pytorch
+  #CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/results/x3d_M_QAT_exp1/quantized_model.pth'
 X3D:
   WIDTH_FACTOR: 2.0
   DEPTH_FACTOR: 2.2
@@ -18,9 +19,9 @@ QUANTIZATION:
   BACKEND: 'fbgemm'
   CALIBRATION_NUM_BATCHES: 10
 TEST:
-  ENABLE: True
+  ENABLE: False
   DATASET: meccano
-  BATCH_SIZE: 15
+  BATCH_SIZE: 64
   NUM_SPATIAL_CROPS: 3
 DATA:
   PATH_TO_DATA_DIR: '/home/milkyway/Desktop/Student Thesis/Datasets/RGB_frames/'

@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from torch.quantization import QuantStub, DeQuantStub
 from torch.quantization.qconfig import QConfig
 import torch.quantization as quant
+import pytorchvideo.layers.swish
 
 import slowfast.utils.logging as logging
 import slowfast.utils.weight_init_helper as init_helper
@@ -118,11 +119,118 @@ class QuantizedX3D(nn.Module):
         else:
             # Use QNNPACK for ARM CPU
             self.qconfig = torch.quantization.get_default_qat_qconfig('qnnpack')
+                
+        # Fuse modules before preparing the model for QAT
+        self._fuse_modules()
         
+        # set model to training mode
+        self.train()
+
         # Prepare the model for QAT
         torch.quantization.prepare_qat(self, inplace=True)
         
         logger.info("Model prepared for Quantization Aware Training (QAT)")
+        
+    def _fuse_modules(self):
+        """
+        Fuse Conv+BN+ReLU modules for better quantization based on X3D architecture,
+        but skip Swish activations since they're not supported by PyTorch's fusion.
+        """
+        
+        self.eval()  # Set to eval mode for fusing
+        
+        # Fuse the stem modules
+        if hasattr(self.s1, "pathway0_stem"):
+            stem = self.s1.pathway0_stem
+            # Fuse Conv+BN+ReLU pattern in stem
+            if hasattr(stem, "conv") and hasattr(stem, "bn") and hasattr(stem, "relu"):
+                torch.quantization.fuse_modules(
+                    stem,
+                    ["conv", "bn", "relu"],
+                    inplace=True
+                )
+        
+        # Fuse ResStage modules for stages 2-5
+        for stage_idx in range(2, 6):
+            if hasattr(self, f"s{stage_idx}"):
+                stage = getattr(self, f"s{stage_idx}")
+                
+                # Get the number of ResBlocks in this stage
+                num_blocks = 0
+                while hasattr(stage, f"pathway0_res{num_blocks}"):
+                    num_blocks += 1
+                
+                # Process each ResBlock in the stage
+                for i in range(num_blocks):
+                    res_block = getattr(stage, f"pathway0_res{i}")
+                    
+                    # Fuse branch1 (skip connection) if it exists
+                    if hasattr(res_block, "branch1"):
+                        torch.quantization.fuse_modules(
+                            res_block, 
+                            ["branch1", "branch1_bn"],
+                            inplace=True
+                        )
+                    
+                    # Fuse X3DTransform modules in branch2
+                    if hasattr(res_block, "branch2"):
+                        transform = res_block.branch2
+                        
+                        # 1. Fuse a + a_bn + a_relu (first 1x1x1 conv)
+                        if hasattr(transform, "a") and hasattr(transform, "a_bn") and hasattr(transform, "a_relu"):
+                            torch.quantization.fuse_modules(
+                                transform,
+                                ["a", "a_bn", "a_relu"],
+                                inplace=True
+                            )
+                        
+                        # 2. Handle b pathway - fuse only Conv+BN and skip the activation if it's Swish
+                        if hasattr(transform, "b") and hasattr(transform, "b_bn"):
+                            # Always fuse just Conv+BN, regardless of SE module presence or activation type
+                            torch.quantization.fuse_modules(
+                                transform,
+                                ["b", "b_bn"],
+                                inplace=True
+                            )
+                        
+                        # 3. Fuse c + c_bn (final 1x1x1 conv, no activation follows)
+                        if hasattr(transform, "c") and hasattr(transform, "c_bn"):
+                            torch.quantization.fuse_modules(
+                                transform,
+                                ["c", "c_bn"],
+                                inplace=True
+                            )
+        
+        # Fuse X3DHead modules
+        if hasattr(self, "head"):
+            head = self.head
+            
+            # 1. Fuse conv_5 + conv_5_bn + conv_5_relu
+            if hasattr(head, "conv_5") and hasattr(head, "conv_5_bn") and hasattr(head, "conv_5_relu"):
+                torch.quantization.fuse_modules(
+                    head,
+                    ["conv_5", "conv_5_bn", "conv_5_relu"],
+                    inplace=True
+                )
+            
+            # 2. Handle lin_5 pathway
+            if hasattr(head, "lin_5") and hasattr(head, "lin_5_relu"):
+                if hasattr(head, "lin_5_bn"):
+                    # If BatchNorm exists for lin_5, fuse it too
+                    torch.quantization.fuse_modules(
+                        head,
+                        ["lin_5", "lin_5_bn", "lin_5_relu"],
+                        inplace=True
+                    )
+                else:
+                    # Otherwise just fuse lin_5 + relu
+                    torch.quantization.fuse_modules(
+                        head,
+                        ["lin_5", "lin_5_relu"],
+                        inplace=True
+                    )
+                
+        logger.info("Model modules fused for QAT based on X3D architecture (skipping Swish activations)")
 
     def _construct_network(self, cfg):
         """
@@ -210,12 +318,12 @@ class QuantizedX3D(nn.Module):
             )
 
     def forward(self, x, bboxes=None):
-        # Quantize the input if quantization is enabled
         if self.quantize_model:
+            x = x[0] 
             x = self.quant(x)
             
-        # Process through the standard X3D model stages
-        x = x[:]  # avoid pass by reference
+        # Process through the standard X3D model stages        
+        x = [x] # Convert to list for single pathway
         x = self.s1(x)
         
         for stage_idx in range(2, 6):
@@ -224,7 +332,7 @@ class QuantizedX3D(nn.Module):
             
         # Head
         x = self.head(x)
-        
+
         # Dequantize the output if quantization is enabled
         if self.quantize_model:
             x = self.dequant(x)
@@ -238,7 +346,13 @@ class QuantizedX3D(nn.Module):
         if not self.quantize_model:
             logger.error("Cannot convert to quantized model: quantization not enabled")
             return
-            
+
+        # set the model to eval mode
+        self.eval()
+
+        # move the model to cpu before conversion
+        self.cpu()    
+        
         torch.quantization.convert(self, inplace=True)
         logger.info("Model converted to quantized format")
         return self
