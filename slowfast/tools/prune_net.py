@@ -30,13 +30,7 @@ def parse_custom_args():
     parser.add_argument("--sparsity_step", help="Sparsity increment per iteration", type=float, default=0.1)
     parser.add_argument("--target_sparsity", help="Target final sparsity", type=float, default=0.9)
     
-    # Add distributed training arguments
-    parser.add_argument("opts", help="additional options for config", default=None, 
-                      nargs=argparse.REMAINDER)
-    parser.add_argument("--num_shards", help="Number of shards", default=1, type=int)
-    parser.add_argument("--shard_id", help="Shard id", default=0, type=int)
-    parser.add_argument("--dist_url", help="distributed training url", default="tcp://localhost:9999")
-    parser.add_argument("--port", help="Port to use", default=-1)
+   
     return parser.parse_args()
 
 def setup_cfg(args):
@@ -171,7 +165,9 @@ def finetune_model(cfg, pruned_model_path):
     """
     # Update config for finetuning
     cfg.TRAIN.CHECKPOINT_FILE_PATH = pruned_model_path
-    
+    cfg.TRAIN.ENABLE = True
+    cfg.TEST.ENABLE = False
+
     # Adjust learning rate for finetuning
     cfg.SOLVER.BASE_LR = cfg.SOLVER.BASE_LR * 0.1
     cfg.SOLVER.MAX_EPOCH = max(5, cfg.SOLVER.MAX_EPOCH // 2)  # Shorter training for finetuning, but at least 5 epochs
@@ -200,7 +196,9 @@ def evaluate_model(cfg, model_path):
     Evaluate the model on validation set
     """
     # Update config for evaluation
-    cfg.TEST.CHECKPOINT_FILE_PATH = model_path
+    cfg.TRAIN.ENABLE = False
+    cfg.TEST.ENABLE = True
+    cfg.TRAIN.CHECKPOINT_FILE_PATH = model_path
     cfg.NUM_GPUS = 1  # Simplify for testing
     
     # Launch evaluation job
@@ -293,6 +291,13 @@ def main():
         logger.info("=== ITERATIVE PRUNING SUMMARY ===")
         for result in results:
             logger.info(f"Sparsity {result['sparsity']:.2f}: {result['model_path']}")
+
+        # Save final results
+        results_path = os.path.join(args.output_dir, "results.txt")
+        with open(results_path, "w") as f:
+            for result in results:
+                f.write(f"Sparsity {result['sparsity']:.2f}: {result['model_path']}\n")
+
 
 if __name__ == "__main__":
     main()
