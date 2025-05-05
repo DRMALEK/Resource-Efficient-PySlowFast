@@ -1,0 +1,80 @@
+TRAIN:
+  ENABLE: True
+  DATASET: meccano
+  BATCH_SIZE: 64
+  EVAL_PERIOD: 5
+  CHECKPOINT_PERIOD: 5
+  AUTO_RESUME: True
+
+# Knowledge Distillation specific configs
+DISTILLATION:
+  ENABLE: True
+  TEMPERATURE: 4.0
+  ALPHA: 0.5  # Weight for hard loss vs soft loss
+  TEACHER_ARCH: slowfast 
+  STUDENT_ARCH: x3d
+  TEACHER_CFG_FILE: "/home/malek/Master Thesis/Code/slowfast/configs/meccano/distilled/SlowFast_8x8_50_teacher.yaml"    # Path to SlowFast config file
+  STUDENT_CHECKPOINT: ""  # Path to initialize student model (optional)
+
+# Student model configs (X3D-M)
+X3D:
+  WIDTH_FACTOR: 2.0
+  DEPTH_FACTOR: 2.2
+  BOTTLENECK_FACTOR: 2.25
+  DIM_C5: 2048
+  DIM_C1: 12
+  BN_LIN5: True
+  SCALE_RES2: True
+
+TEST:
+  ENABLE: True
+  DATASET: kinetics
+  BATCH_SIZE: 64
+  NUM_SPATIAL_CROPS: 3
+
+DATA:
+  NUM_FRAMES: 16
+  SAMPLING_RATE: 5
+  TRAIN_JITTER_SCALES: [256, 320]
+  TRAIN_CROP_SIZE: 224
+  TEST_CROP_SIZE: 256
+  INPUT_CHANNEL_NUM: [3]
+  DECODING_BACKEND: torchvision
+
+RESNET:
+  ZERO_INIT_FINAL_BN: True
+  TRANS_FUNC: x3d_transform
+  STRIDE_1X1: False
+
+BN:
+  USE_PRECISE_STATS: True
+  NUM_BATCHES_PRECISE: 200
+  WEIGHT_DECAY: 0.0
+
+SOLVER:
+  BASE_LR: 0.005  # Lower LR for distillation
+  LR_POLICY: cosine
+  MAX_EPOCH: 120
+  WEIGHT_DECAY: 5e-5
+  WARMUP_EPOCHS: 20.0
+  WARMUP_START_LR: 0.001
+  OPTIMIZING_METHOD: sgd
+
+MODEL:
+  NUM_CLASSES: 61 # Number of classes in the dataset
+  ARCH: x3d
+  MODEL_NAME: X3D
+  LOSS_FUNC: cross_entropy
+  DROPOUT_RATE: 0.5
+
+DATA_LOADER:
+  NUM_WORKERS: 8
+  PIN_MEMORY: True
+
+NUM_GPUS: 1  # Adjust based on available resources
+RNG_SEED: 42
+OUTPUT_DIR: "./distillation_output"
+
+TENSORBOARD:
+  ENABLE: True
+  SYNC_WANDB: False

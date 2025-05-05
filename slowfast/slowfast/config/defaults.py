@@ -1281,6 +1281,29 @@ _C.QUANTIZATION.BACKEND = 'fbgemm'
 _C.QUANTIZATION.CALIBRATION_NUM_BATCHES = 10
 
 
+# ---------------------------------------------------------------------------- #
+# Knowledge Distillation options
+# ---------------------------------------------------------------------------- #
+_C.DISTILLATION = CfgNode()
+
+# Whether to enable knowledge distillation.
+_C.DISTILLATION.ENABLE = False
+
+# The temperature of the softmax function.
+_C.DISTILLATION.TETEMPERATURE = 4.0
+
+# The temperature of the softmax function.
+_C.DISTILLATION.ALPHA = 0.5
+
+# The architecture of the teacher model.
+_C.DISTILLATION.TEACHER_ARCH = 'slowfast'
+
+_C.DISTILLATION.STUDENT_ARCH = "x3d"
+                
+_C.DISTILLATION.STUDENT_CHECKPOINT = ""
+
+_C.DISTLLATION.TEACHER_CFG_FILE = ""
+
 def assert_and_infer_cfg(cfg):
     # BN assertions.
     if cfg.BN.USE_PRECISE_STATS:
