@@ -286,6 +286,9 @@ def load_checkpoint(
         model_state_dict_3d = (
             model.module.state_dict() if data_parallel else model.state_dict()
         )
+
+        print("model state dict keys: ", checkpoint.keys())
+
         checkpoint["model_state"] = normal_to_sub_bn(
             checkpoint["model_state"], model_state_dict_3d
         )

@@ -26,13 +26,13 @@ def parse_args():
         "--cfg",
         dest="cfg_file",
         help="Path to the config file",
-        default="/home/milkyway/Desktop/Student Thesis/Slowfast/baseline/slowfast/SLOWFAST_8x8_R50_MECCANO.yaml",
+        default="/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/quantized/X3D_M_QAT.yaml",
         type=str,
     )
     parser.add_argument(
         "--checkpoint_file",
         help="Path to the checkpoint file",
-        default="/home/milkyway/Desktop/Student Thesis/Slowfast/baseline/slowfast/SLOWFAST_8x8_R50_RGB_MECCANO.pyth",
+        default="/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/results/x3d_M_QAT_exp1/quantized_model.pth",
         type=str,
     )
     return parser.parse_args()
@@ -92,8 +92,8 @@ def main():
     
     # Load checkpoint
     if args.checkpoint_file is not None and os.path.exists(args.checkpoint_file):
-        cu.load_checkpoint(
-            args.checkpoint_file, model, cfg.NUM_GPUS > 1
+        cu.load_test_checkpoint(
+            cfg, model
         )
     
     model.eval()
