@@ -1302,7 +1302,7 @@ _C.DISTILLATION.STUDENT_ARCH = "x3d"
                 
 _C.DISTILLATION.STUDENT_CHECKPOINT = ""
 
-_C.DISTLLATION.TEACHER_CFG_FILE = ""
+_C.DISTILLATION.TEACHER_CFG_FILE = ""
 
 def assert_and_infer_cfg(cfg):
     # BN assertions.

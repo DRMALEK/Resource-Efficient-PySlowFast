@@ -351,8 +351,8 @@ class QuantizedX3D(nn.Module):
         self.eval()
 
         # move the model to cpu before conversion
-        self.cpu()    
+        #self.cpu()    
         
         torch.quantization.convert(self, inplace=True)
+        
         logger.info("Model converted to quantized format")
-        return self

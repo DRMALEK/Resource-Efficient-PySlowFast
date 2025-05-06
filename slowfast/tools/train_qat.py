@@ -584,6 +584,7 @@ def test(cfg):
     """
     # Set up environment.
     du.init_distributed_training(cfg)
+    
     # Set random seed from configs.
     np.random.seed(cfg.RNG_SEED)
     torch.manual_seed(cfg.RNG_SEED)
@@ -600,11 +601,15 @@ def test(cfg):
     if du.is_master_proc() and cfg.LOG_MODEL_INFO:
         misc.log_model_info(model, cfg, use_train_input=False)
 
-    # Load a checkpoint to test if applicable.
-    cu.load_test_checkpoint(cfg, model)
-    
+
+    # convert the model to quantized version if applicable.
+    model.convert_to_quantized_model()
+
     model.eval()
 
+    # Load a checkpoint to test if applicable.
+    cu.load_test_checkpoint(cfg, model, quantized=True)
+    
 
     # Create video testing loaders.
     test_loader = loader.construct_loader(cfg, "test")
@@ -613,24 +618,28 @@ def test(cfg):
     # Create meters for testing.
     test_meter = ValMeter(len(test_loader), cfg)
 
-    # # Perform test.
+    # Perform test.
     test_meter.iter_tic()
     model.eval()
     
     for cur_iter, (inputs, labels, index, time, meta) in enumerate(test_loader):
         # Transfer the data to the current GPU device.
-        if isinstance(inputs, (list,)):
-            for i in range(len(inputs)):
-                inputs[i] = inputs[i].cuda(non_blocking=True)
-        else:
-            inputs = inputs.cuda(non_blocking=True)
-        labels = labels.cuda()
-        for key, val in meta.items():
-            if isinstance(val, (list,)):
-                for i in range(len(val)):
-                    val[i] = val[i].cuda(non_blocking=True)
+        
+        if cfg.NUM_GPUS > 0:
+            if isinstance(inputs, (list,)):
+                for i in range(len(inputs)):
+                    inputs[i] = inputs[i].cuda(non_blocking=True)
             else:
-                meta[key] = val.cuda(non_blocking=True)
+                inputs = inputs.cuda(non_blocking=True)
+            labels = labels.cuda()
+
+                
+            for key, val in meta.items():
+                if isinstance(val, (list,)):
+                    for i in range(len(val)):
+                        val[i] = val[i].cuda(non_blocking=True)
+                else:
+                    meta[key] = val.cuda(non_blocking=True)
                 
         test_meter.data_toc()
         

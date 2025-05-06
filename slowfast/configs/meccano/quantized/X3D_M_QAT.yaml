@@ -4,9 +4,8 @@ TRAIN:
   BATCH_SIZE: 15
   EVAL_PERIOD: 10
   CHECKPOINT_PERIOD: 10
-  AUTO_RESUME: True
+  AUTO_RESUME: False           # Shall be false in case of testing for QAT
   CHECKPOINT_TYPE: pytorch
-  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/results/x3d_M_QAT_exp1/quantized_model.pth'
 X3D:
   WIDTH_FACTOR: 2.0
   DEPTH_FACTOR: 2.2
@@ -23,6 +22,7 @@ TEST:
   DATASET: meccano
   BATCH_SIZE: 32
   NUM_SPATIAL_CROPS: 3
+  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/results/x3d_M_QAT_exp1/quantized_model.pth'
 DATA:
   PATH_TO_DATA_DIR: '/home/milkyway/Desktop/Student Thesis/Datasets/RGB_frames/'
   NUM_FRAMES: 16

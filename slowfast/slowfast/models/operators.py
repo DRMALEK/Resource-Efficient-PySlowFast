@@ -16,7 +16,10 @@ from slowfast.models.utils import get_gkern
 
 
 class SE(nn.Module):
-    """Squeeze-and-Excitation (SE) block w/ Swish: AvgPool, FC, Swish, FC, Sigmoid."""
+    """A modified version of the orginal 'Squeeze-and-Excitation (SE) block w/ Swish: AvgPool, FC, Swish, FC, Sigmoid.', 
+       which is used in the SlowFast model. 
+       This version is modified to support quantized inputs!!
+    """
 
     def _round_width(self, width, multiplier, min_width=8, divisor=8):
         """
@@ -55,11 +58,35 @@ class SE(nn.Module):
 
         self.fc2_sig = nn.Sigmoid()
 
-    def forward(self, x):
-        x_in = x
-        for module in self.children():
-            x = module(x)
-        return x_in * x
+    def forward(self, x_in):
+        # Check if input is quantized
+        if hasattr(x_in, 'is_quantized') and x_in.is_quantized:
+            # Save quantization parameters
+            scale = x_in.q_scale()
+            zero_point = x_in.q_zero_point()
+            dtype = x_in.dtype
+            
+            # Dequantize for processing
+            x_in_float = torch.dequantize(x_in)
+            
+            # Process through SE block (standard forward pass)
+            x = self.avg_pool(x_in_float)
+            x = self.fc1(x)
+            x = self.fc1_act(x)
+            x = self.fc2(x)
+            x = self.fc2_sig(x)
+            
+            # Calculate result in floating point
+            result = x_in_float * x
+            
+            # Re-quantize with original parameters
+            return torch.quantize_per_tensor(result, scale, zero_point, dtype)
+        else:
+            # Original implementation for floating point
+            x = x_in
+            for module in self.children():
+                x = module(x)
+            return x_in * x
 
 
 class HOGLayerC(nn.Module):

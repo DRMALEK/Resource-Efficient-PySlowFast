@@ -15,6 +15,7 @@ from slowfast.models import build_model
 from slowfast.datasets.utils import pack_pathway_output
 from slowfast.config.defaults import get_cfg
 from slowfast.utils.parser import load_config
+import slowfast.models.optimizer as optim
 
 logger = logging.get_logger(__name__)
 
@@ -90,11 +91,12 @@ def main():
     # Build the model
     model = build_model(cfg)
     
+    # Construct the optimizer.
+    optimizer = optim.construct_optimizer(model, cfg)
+
     # Load checkpoint
     if args.checkpoint_file is not None and os.path.exists(args.checkpoint_file):
-        cu.load_test_checkpoint(
-            cfg, model
-        )
+        cu.load_train_checkpoint(cfg, model, optimizer, quantized=True)
     
     model.eval()
     

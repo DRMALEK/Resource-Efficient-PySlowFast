@@ -190,6 +190,7 @@ def load_checkpoint(
     epoch_reset=False,
     clear_name_pattern=(),
     image_init=False,
+    quantized=False,
 ):
     """
     Load the checkpoint from the given file. If inflation is True, inflate the
@@ -214,6 +215,21 @@ def load_checkpoint(
 
     # Account for the DDP wrapper in the multi-gpu setting.
     ms = model.module if data_parallel else model
+    
+    if quantized:
+        # Load the quantized model.
+        with pathmgr.open(path_to_checkpoint, "rb") as f:
+            checkpoint = torch.load(f, map_location="cpu")
+        ms.load_state_dict(checkpoint, strict=False)
+        epoch = -1
+        if optimizer:
+            optimizer.load_state_dict(checkpoint["optimizer_state"])
+        if scaler:
+            scaler.load_state_dict(checkpoint["scaler_state"])
+        return epoch
+
+    
+    
     if convert_from_caffe2:
         with pathmgr.open(path_to_checkpoint, "rb") as f:
             caffe2_checkpoint = pickle.load(f, encoding="latin1")
@@ -282,13 +298,10 @@ def load_checkpoint(
     else:
         # Load the checkpoint on CPU to avoid GPU mem spike.
         with pathmgr.open(path_to_checkpoint, "rb") as f:
-            checkpoint = torch.load(f, map_location="cpu", encoding="latin1")
+            checkpoint = torch.load(f, map_location="cpu")
         model_state_dict_3d = (
             model.module.state_dict() if data_parallel else model.state_dict()
         )
-
-        print("model state dict keys: ", checkpoint.keys())
-
         checkpoint["model_state"] = normal_to_sub_bn(
             checkpoint["model_state"], model_state_dict_3d
         )
@@ -626,7 +639,7 @@ def normal_to_sub_bn(checkpoint_sd, model_sd):
     return checkpoint_sd
 
 
-def load_test_checkpoint(cfg, model):
+def load_test_checkpoint(cfg, model, quantized=False):
     """
     Loading checkpoint logic for testing.
     """
@@ -640,12 +653,13 @@ def load_test_checkpoint(cfg, model):
             model,
             cfg.NUM_GPUS > 1,
             None,
+            quantized=quantized,
             inflation=False,
             convert_from_caffe2=cfg.TEST.CHECKPOINT_TYPE == "caffe2",
         )
     elif has_checkpoint(cfg.OUTPUT_DIR):
         last_checkpoint = get_last_checkpoint(cfg.OUTPUT_DIR, cfg.TASK)
-        load_checkpoint(last_checkpoint, model, cfg.NUM_GPUS > 1)
+        load_checkpoint(last_checkpoint, model, cfg.NUM_GPUS > 1, quantized)
     elif cfg.TRAIN.CHECKPOINT_FILE_PATH != "":
         # If no checkpoint found in TEST.CHECKPOINT_FILE_PATH or in the current
         # checkpoint folder, try to load checkpoint from
@@ -655,6 +669,7 @@ def load_test_checkpoint(cfg, model):
             model,
             cfg.NUM_GPUS > 1,
             None,
+            quantized=quantized,
             inflation=False,
             convert_from_caffe2=cfg.TRAIN.CHECKPOINT_TYPE == "caffe2",
         )
@@ -664,7 +679,7 @@ def load_test_checkpoint(cfg, model):
         )
 
 
-def load_train_checkpoint(cfg, model, optimizer, scaler=None):
+def load_train_checkpoint(cfg, model, optimizer, scaler=None, quantized=False):
     """
     Loading checkpoint logic for training.
     """
@@ -677,6 +692,7 @@ def load_train_checkpoint(cfg, model, optimizer, scaler=None):
             cfg.NUM_GPUS > 1,
             optimizer,
             scaler=scaler,
+            quantized=quantized,
             clear_name_pattern=cfg.TRAIN.CHECKPOINT_CLEAR_NAME_PATTERN,
         )
         start_epoch = checkpoint_epoch + 1
@@ -688,6 +704,7 @@ def load_train_checkpoint(cfg, model, optimizer, scaler=None):
             cfg.NUM_GPUS > 1,
             optimizer,
             scaler=scaler,
+            quantized=quantized,
             inflation=cfg.TRAIN.CHECKPOINT_INFLATE,
             convert_from_caffe2=cfg.TRAIN.CHECKPOINT_TYPE == "caffe2",
             epoch_reset=cfg.TRAIN.CHECKPOINT_EPOCH_RESET,
