@@ -20,6 +20,7 @@ TEST:
   # CHECKPOINT_FILE_PATH: 'x3d_m.pyth' # 76.21% top1 30-view accuracy to download from the model zoo (optional).
   # NUM_SPATIAL_CROPS: 1
   NUM_SPATIAL_CROPS: 3
+  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/results/x3d_M_exp1/checkpoints/checkpoint_epoch_00120.pyth'
 DATA:
   PATH_TO_DATA_DIR: '/home/milkyway/Desktop/Student Thesis/Datasets/RGB_frames/'
   NUM_FRAMES: 16
@@ -56,6 +57,6 @@ MODEL:
 DATA_LOADER:
   NUM_WORKERS: 8
   PIN_MEMORY: True
-NUM_GPUS: 1
+NUM_GPUS: 0
 RNG_SEED: 0
-OUTPUT_DIR: './results/x3d_M_exp1'
+OUTPUT_DIR: './results/x3d_M_Ptq_exp1'
