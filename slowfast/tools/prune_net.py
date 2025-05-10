@@ -1,15 +1,22 @@
 import os
 import torch
 import torch.nn as nn
-import nni.algorithms.compression.pytorch.pruning as pruning
+import nni.compression.pruning as pruning
+from nni.compression.speedup import ModelSpeedup
 import argparse
+import sys
+
+# Add the path to the slowfast module or via export 'export PYTHONPATH=/path/to/SlowFast/slowfast:$PYTHONPATH'
+sys.path.insert(0, '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast')
+
+
 from slowfast.utils.parser import load_config, parse_args
 from slowfast.models import build_model
 from slowfast.config.defaults import get_cfg
 from slowfast.utils.checkpoint import load_checkpoint
 from slowfast.utils.misc import launch_job
 from slowfast.utils.distributed import init_distributed_training
-from slowfast.engine import train_net, test_net
+import train_net, test_net
 import slowfast.utils.logging as logging
 
 logger = logging.get_logger(__name__)
@@ -17,20 +24,22 @@ logger = logging.get_logger(__name__)
 def parse_custom_args():
     parser = argparse.ArgumentParser(description="X3D Model Pruning Pipeline")
     parser.add_argument("--cfg", dest="cfg_file", help="Path to the config file", 
-                      default="/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/Kinetics/X3D_M.yaml", type=str)
-    parser.add_argument("--pretrained", help="Path to pretrained model", type=str, default="")
+                      default="/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/pruned/X3D_M_Pruned.yaml", type=str)
+    parser.add_argument("--pretrained", help="Path to pretrained model", type=str, default="/home/milkyway/Desktop/Student Thesis/results/x3d_M_exp1/checkpoints/checkpoint_epoch_00120.pyth")
     parser.add_argument("--pruning_method", help="NNI pruning method", 
                       choices=["level", "l1", "l2", "fpgm", "slim", "taylor"], default="l1")
-    parser.add_argument("--sparsity", help="Target sparsity level (0.0-1.0)", type=float, default=0.5)
+    parser.add_argument("--sparsity", help="Target sparsity level (0.0-1.0)", type=float, default=0.25)
     parser.add_argument("--mode", help="Pipeline stage", 
                       choices=["pretrain", "prune", "finetune", "full"], default="full")
     parser.add_argument("--pruned_model", help="Path to pruned model for finetuning", type=str, default="")
     parser.add_argument("--output_dir", help="Output directory", type=str, default="./pruning_output")
     parser.add_argument("--eval_after_finetune", help="Evaluate model after finetuning", action="store_true")
-    parser.add_argument("--sparsity_step", help="Sparsity increment per iteration", type=float, default=0.1)
-    parser.add_argument("--target_sparsity", help="Target final sparsity", type=float, default=0.9)
+    parser.add_argument("--use_predefined_intervals", help="Use predefined pruning intervals and finetuning ranges", action="store_true", default=True)
     
-   
+    # Legacy parameters kept for backward compatibility
+    parser.add_argument("--sparsity_step", help="Sparsity increment per iteration (used only if not using predefined intervals)", type=float, default=0.1)
+    parser.add_argument("--target_sparsity", help="Target final sparsity (used only if not using predefined intervals)", type=float, default=0.9)
+    
     return parser.parse_args()
 
 def setup_cfg(args):
@@ -39,9 +48,7 @@ def setup_cfg(args):
     """
     cfg = get_cfg()
     cfg.merge_from_file(args.cfg_file)
-    if args.opts:
-        cfg.merge_from_list(args.opts)
-    
+
     # Create output folder
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -103,7 +110,7 @@ def prune_model(cfg, args, checkpoint_path):
     model.eval()
     
     # Configure pruner based on specified method
-    config = [{'sparsity': args.sparsity, 'op_types': ['Conv3d']}]
+    config = [{'sparse_ratio': args.sparsity, 'op_types': ['Conv3d']}]
     
     if args.pruning_method == "level":
         pruner = pruning.LevelPruner(model, config)
@@ -116,7 +123,7 @@ def prune_model(cfg, args, checkpoint_path):
     elif args.pruning_method == "slim":
         # For slim pruner, we need to first do a training phase with sparsity regularization
         logger.warning("SlimPruner requires pre-training with BatchNorm scaling factors regularization")
-        pruner = pruning.SlimPruner(model, [{'sparsity': args.sparsity, 'op_types': ['BatchNorm3d']}])
+        pruner = pruning.SlimPruner(model, [{'sparse_ratio': args.sparsity, 'op_types': ['BatchNorm3d']}])
     elif args.pruning_method == "taylor":
         # Taylor pruning needs real data to compute importance scores
         dummy_loader = prepare_data_loader(cfg)
@@ -130,13 +137,17 @@ def prune_model(cfg, args, checkpoint_path):
     _, masks = pruner.compress()
     
     # Model speedup by removing pruned weights
-    from nni.compression.pytorch.speedup import ModelSpeedup
     dummy_input = torch.rand(1, 3, cfg.DATA.NUM_FRAMES, cfg.DATA.TRAIN_CROP_SIZE, cfg.DATA.TRAIN_CROP_SIZE).to(device)
     
+    # need to unwrap the model, if the model is wrapped before speedup
+    pruner.unwrap_model()
+
     # Speedup the model
     logger.info("Applying model speedup...")
-    ModelSpeedup(model, dummy_input, masks, device).speedup_model()
+    ModelSpeedup(model, dummy_input, masks).speedup_model()
     
+    print("Model speedup completed.")
+
     # Save pruned model
     pruned_model_path = os.path.join(args.output_dir, f"pruned_model_{args.pruning_method}_sparsity{int(args.sparsity*100)}.pyth")
     torch.save({
@@ -246,42 +257,87 @@ def main():
     # Record starting model
     starting_model = args.pretrained
     
+    # Define the predefined intervals and corresponding finetuning epochs
+    pruning_intervals = [0.25]  # 25%, 50%, 70%, 80%, 90% sparsity
+    finetuning_ranges = [20]  # Direct epoch counts for finetuning
+    
     # Save results for each iteration
     results = []
-    current_sparsity = args.sparsity
     
     if args.mode == "full":
-        # Iterative pruning and finetuning
-        while current_sparsity <= args.target_sparsity:
-            logger.info(f"=== ITERATIVE PRUNING: SPARSITY {current_sparsity:.2f} ===")
-            
-            # Set current sparsity
-            args.sparsity = current_sparsity
-            
-            # Run pruning and finetuning for current sparsity
-            finetuned_model_path = run_pipeline(args)
-            
-            if not finetuned_model_path:
-                logger.error(f"Failed at sparsity {current_sparsity}. Stopping.")
-                break
+        if args.use_predefined_intervals:
+            # Use predefined sparsity intervals and corresponding finetuning ranges
+            for idx, sparsity in enumerate(pruning_intervals):
+                logger.info(f"=== ITERATIVE PRUNING: SPARSITY {sparsity:.2f} ===")
                 
-            # Save iteration results
-            result = {
-                'sparsity': current_sparsity,
-                'model_path': finetuned_model_path
-            }
-            results.append(result)
-            
-            # Save a copy with descriptive name for easier reference
-            descriptive_path = os.path.join(os.path.dirname(finetuned_model_path), 
-                                          f"finetuned_{args.pruning_method}_sparsity{int(current_sparsity*100)}.pyth")
-            torch.save(torch.load(finetuned_model_path), descriptive_path)
-            
-            # Use finetuned model as starting point for next iteration
-            args.pretrained = finetuned_model_path
-            
-            # Increment sparsity for next iteration
-            current_sparsity += args.sparsity_step
+                # Set current sparsity
+                args.sparsity = sparsity
+                
+                # Set finetuning epochs directly from the range value
+                finetune_epochs = finetuning_ranges[idx]
+                cfg = setup_cfg(args)
+                cfg.SOLVER.MAX_EPOCH = finetune_epochs
+                
+                logger.info(f"Finetuning for {finetune_epochs} epochs")
+                
+                # Run pruning and finetuning for current sparsity
+                finetuned_model_path = run_pipeline(args)
+                
+                if not finetuned_model_path:
+                    logger.error(f"Failed at sparsity {sparsity}. Stopping.")
+                    break
+                    
+                # Save iteration results
+                result = {
+                    'sparsity': sparsity,
+                    'finetune_epochs': finetune_epochs,
+                    'model_path': finetuned_model_path
+                }
+                results.append(result)
+                
+                # Save a copy with descriptive name for easier reference
+                descriptive_path = os.path.join(os.path.dirname(finetuned_model_path), 
+                                              f"finetuned_{args.pruning_method}_sparsity{int(sparsity*100)}.pyth")
+                try:
+                    torch.save(torch.load(finetuned_model_path), descriptive_path)
+                except Exception as e:
+                    logger.error(f"Failed to save descriptive path copy: {e}")
+                
+                # Use finetuned model as starting point for next iteration
+                args.pretrained = finetuned_model_path
+        else:
+            # Use the legacy iterative approach with sparsity_step
+            current_sparsity = args.sparsity
+            while current_sparsity <= args.target_sparsity:
+                logger.info(f"=== ITERATIVE PRUNING: SPARSITY {current_sparsity:.2f} ===")
+                
+                # Set current sparsity
+                args.sparsity = current_sparsity
+                
+                # Run pruning and finetuning for current sparsity
+                finetuned_model_path = run_pipeline(args)
+                
+                if not finetuned_model_path:
+                    logger.error(f"Failed at sparsity {current_sparsity}. Stopping.")
+                    break
+                    
+                # Save iteration results
+                result = {
+                    'sparsity': current_sparsity,
+                    'model_path': finetuned_model_path
+                }
+                results.append(result)
+                
+                # Save a copy with descriptive name for easier reference
+                descriptive_path = os.path.join(os.path.dirname(finetuned_model_path), 
+                                              f"finetuned_{args.pruning_method}_sparsity{int(current_sparsity*100)}.pyth")
+                torch.save(torch.load(finetuned_model_path), descriptive_path)
+                
+                # Use finetuned model as starting point for next iteration
+                args.pretrained = finetuned_model_path
+                
+                # Increment sparsity for next iteration
+                current_sparsity += args.sparsity_step
     else:
         # Single run mode
         run_pipeline(args)
@@ -290,13 +346,17 @@ def main():
     if results:
         logger.info("=== ITERATIVE PRUNING SUMMARY ===")
         for result in results:
-            logger.info(f"Sparsity {result['sparsity']:.2f}: {result['model_path']}")
+            sparsity_info = f"Sparsity {result['sparsity']:.2f}"
+            epochs_info = f", Epochs: {result.get('finetune_epochs', 'N/A')}" if 'finetune_epochs' in result else ""
+            logger.info(f"{sparsity_info}{epochs_info}: {result['model_path']}")
 
         # Save final results
         results_path = os.path.join(args.output_dir, "results.txt")
         with open(results_path, "w") as f:
             for result in results:
-                f.write(f"Sparsity {result['sparsity']:.2f}: {result['model_path']}\n")
+                sparsity_info = f"Sparsity {result['sparsity']:.2f}"
+                epochs_info = f", Epochs: {result.get('finetune_epochs', 'N/A')}" if 'finetune_epochs' in result else ""
+                f.write(f"{sparsity_info}{epochs_info}: {result['model_path']}\n")
 
 
 if __name__ == "__main__":

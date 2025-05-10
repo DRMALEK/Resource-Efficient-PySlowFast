@@ -513,8 +513,18 @@ class ResBlock(nn.Module):
 
     def forward(self, x):
         f_x = self.branch2(x)
-        if self.training and self._drop_connect_rate > 0.0:
-            f_x = drop_path(f_x, self._drop_connect_rate)
+        
+        # During NNI tracing, skip the drop_path operation to avoid ConcreteProxy boolean issues
+        # The original condition was: if self.training and self._drop_connect_rate > 0.0
+        try:
+            # Only apply during real training, not during NNI tracing
+            training_flag = hasattr(torch, "_C") and self.training
+            if training_flag and self._drop_connect_rate > 0.0:
+                f_x = drop_path(f_x, self._drop_connect_rate)
+        except (TypeError, ValueError):
+            # Skip during NNI tracing when ConcreteProxy objects are involved
+            pass
+            
         if hasattr(self, "branch1"):
             x = self.branch1_bn(self.branch1(x)) + f_x
         else:

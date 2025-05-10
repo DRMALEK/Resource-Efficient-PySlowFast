@@ -16,7 +16,7 @@ X3D:
 TEST:
   ENABLE: True
   DATASET: meccano
-  BATCH_SIZE: 15
+  BATCH_SIZE: 60
   # CHECKPOINT_FILE_PATH: 'x3d_m.pyth' # 76.21% top1 30-view accuracy to download from the model zoo (optional).
   # NUM_SPATIAL_CROPS: 1
   NUM_SPATIAL_CROPS: 3
@@ -57,6 +57,6 @@ MODEL:
 DATA_LOADER:
   NUM_WORKERS: 8
   PIN_MEMORY: True
-NUM_GPUS: 0
+NUM_GPUS: 1
 RNG_SEED: 0
 OUTPUT_DIR: './intermediate_results/X3D_M_pruned_exp1'
