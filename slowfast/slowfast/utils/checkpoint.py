@@ -111,15 +111,17 @@ def is_checkpoint_epoch(cfg, cur_epoch, multigrid_schedule=None):
     return (cur_epoch + 1) % cfg.TRAIN.CHECKPOINT_PERIOD == 0
 
 
-def save_checkpoint(path_to_job, model, optimizer, epoch, cfg, scaler=None):
+def save_checkpoint(path_to_job, model, optimizer, epoch, cfg, scaler=None, pruned=False):
     """
     Save a checkpoint.
     Args:
+        path_to_job (string): path to the folder where checkpoints will be saved.
         model (model): model to save the weight to the checkpoint.
         optimizer (optim): optimizer to save the historical state.
         epoch (int): current number of epoch of the model.
         cfg (CfgNode): configs to save.
         scaler (GradScaler): the mixed precision scale.
+        pruned (bool): if True, save the entire model object instead of just state_dict.
     """
     # Save checkpoints only from the master process.
     if not du.is_master_proc(cfg.NUM_GPUS * cfg.NUM_SHARDS):
@@ -130,21 +132,31 @@ def save_checkpoint(path_to_job, model, optimizer, epoch, cfg, scaler=None):
     sd = model.module.state_dict() if cfg.NUM_GPUS > 1 else model.state_dict()
     normalized_sd = sub_to_normal_bn(sd)
 
-    # Record the state.
-    checkpoint = {
-        "epoch": epoch,
-        "model_state": normalized_sd,
-        "optimizer_state": optimizer.state_dict(),
-        "cfg": cfg.dump(),
-    }
+    if pruned:
+        # Store the entire model object rather than just the state dict
+        checkpoint = {
+            "epoch": epoch,
+            "model": model,  # Save the entire model object
+            "optimizer_state": optimizer.state_dict(),
+            "cfg": cfg.dump(),
+        }
+    else:
+        checkpoint = {
+            "epoch": epoch,
+            "model_state": normalized_sd,
+            "optimizer_state": optimizer.state_dict(),
+            "cfg": cfg.dump(),
+        }
+        
     if scaler is not None:
         checkpoint["scaler_state"] = scaler.state_dict()
+
     # Write the checkpoint.
     path_to_checkpoint = get_path_to_checkpoint(path_to_job, epoch + 1, cfg.TASK)
     with pathmgr.open(path_to_checkpoint, "wb") as f:
         torch.save(checkpoint, f)
+    
     return path_to_checkpoint
-
 
 def inflate_weight(state_dict_2d, state_dict_3d):
     """
@@ -191,6 +203,8 @@ def load_checkpoint(
     clear_name_pattern=(),
     image_init=False,
     quantized=False,
+    pruned=False,
+    weights_only=False,
 ):
     """
     Load the checkpoint from the given file. If inflation is True, inflate the
@@ -212,23 +226,31 @@ def load_checkpoint(
         (int): the number of training epoch of the checkpoint.
     """
     logger.info("Loading network weights from {}.".format(path_to_checkpoint))
-
+    
     # Account for the DDP wrapper in the multi-gpu setting.
-    ms = model.module if data_parallel else model
-    
-    if quantized:
-        # Load the quantized model.
-        with pathmgr.open(path_to_checkpoint, "rb") as f:
-            checkpoint = torch.load(f, map_location="cpu")
-        ms.load_state_dict(checkpoint, strict=False)
-        epoch = -1
-        if optimizer:
-            optimizer.load_state_dict(checkpoint["optimizer_state"])
-        if scaler:
-            scaler.load_state_dict(checkpoint["scaler_state"])
-        return epoch
+    if data_parallel and hasattr(model, "module"):
+        ms = model.module
+    else:
+        ms = model
 
-    
+    if pruned:
+        with pathmgr.open(path_to_checkpoint, "rb") as f:
+            checkpoint = torch.load(f, weights_only=weights_only)
+
+            loaded_model = checkpoint["model"]
+            
+            if optimizer in checkpoint.keys():
+                optimizer.load_state_dict(checkpoint["optimizer_state"])
+            
+            if scaler and scaler in checkpoint.keys():
+                scaler.load_state_dict(checkpoint["scaler_state"])
+            
+            if "epoch" in checkpoint.keys() and not epoch_reset:
+                epoch = checkpoint["epoch"]
+                return epoch, loaded_model
+
+            return -1, loaded_model
+
     
     if convert_from_caffe2:
         with pathmgr.open(path_to_checkpoint, "rb") as f:
@@ -298,13 +320,17 @@ def load_checkpoint(
     else:
         # Load the checkpoint on CPU to avoid GPU mem spike.
         with pathmgr.open(path_to_checkpoint, "rb") as f:
-            checkpoint = torch.load(f, map_location="cpu")
-        model_state_dict_3d = (
-            model.module.state_dict() if data_parallel else model.state_dict()
-        )
+            checkpoint = torch.load(f, map_location="cpu", weights_only=weights_only)
+        # Check if model has a module attribute before trying to access it
+        if data_parallel and hasattr(model, 'module'):
+            model_state_dict_3d = model.module.state_dict()
+        else:
+            model_state_dict_3d = model.state_dict()
+            
         checkpoint["model_state"] = normal_to_sub_bn(
             checkpoint["model_state"], model_state_dict_3d
         )
+
         if inflation:
             # Try to inflate the model.
             inflated_model_dict = inflate_weight(
@@ -639,7 +665,7 @@ def normal_to_sub_bn(checkpoint_sd, model_sd):
     return checkpoint_sd
 
 
-def load_test_checkpoint(cfg, model, quantized=False):
+def load_test_checkpoint(cfg, model, quantized=False, prunned=False, weights_only=False):
     """
     Loading checkpoint logic for testing.
     """
@@ -648,35 +674,77 @@ def load_test_checkpoint(cfg, model, quantized=False):
         # If no checkpoint found in MODEL_VIS.CHECKPOINT_FILE_PATH or in the current
         # checkpoint folder, try to load checkpoint from
         # TEST.CHECKPOINT_FILE_PATH and test it.
-        load_checkpoint(
-            cfg.TEST.CHECKPOINT_FILE_PATH,
-            model,
-            cfg.NUM_GPUS > 1,
-            None,
-            quantized=quantized,
-            inflation=False,
-            convert_from_caffe2=cfg.TEST.CHECKPOINT_TYPE == "caffe2",
-        )
+        if prunned:
+            _, model = load_checkpoint(
+                cfg.TEST.CHECKPOINT_FILE_PATH,
+                model,
+                cfg.NUM_GPUS > 1,
+                None,
+                quantized=quantized,
+                inflation=False,
+                convert_from_caffe2=cfg.TEST.CHECKPOINT_TYPE == "caffe2",
+                weights_only=weights_only,
+                pruned=True
+            )
+        else:
+            load_checkpoint(
+                cfg.TEST.CHECKPOINT_FILE_PATH,
+                model,
+                cfg.NUM_GPUS > 1,
+                None,
+                quantized=quantized,
+                inflation=False,
+                convert_from_caffe2=cfg.TEST.CHECKPOINT_TYPE == "caffe2",
+                weights_only=weights_only,
+            )
+
+    # If no checkpoint found in TEST.CHECKPOINT_FILE_PATH or in the current
     elif has_checkpoint(cfg.OUTPUT_DIR):
         last_checkpoint = get_last_checkpoint(cfg.OUTPUT_DIR, cfg.TASK)
-        load_checkpoint(last_checkpoint, model, cfg.NUM_GPUS > 1, quantized)
+        
+        if prunned:
+            _, model = load_checkpoint(last_checkpoint, model, quantized, cfg.NUM_GPUS > 1, weights_only=weights_only, pruned=True)
+    
+        else:
+            load_checkpoint(last_checkpoint, model, quantized, cfg.NUM_GPUS > 1, weights_only=weights_only)
+    
+    
     elif cfg.TRAIN.CHECKPOINT_FILE_PATH != "":
         # If no checkpoint found in TEST.CHECKPOINT_FILE_PATH or in the current
         # checkpoint folder, try to load checkpoint from
-        # TRAIN.CHECKPOINT_FILE_PATH and test it.
-        load_checkpoint(
-            cfg.TRAIN.CHECKPOINT_FILE_PATH,
-            model,
-            cfg.NUM_GPUS > 1,
-            None,
-            quantized=quantized,
-            inflation=False,
-            convert_from_caffe2=cfg.TRAIN.CHECKPOINT_TYPE == "caffe2",
-        )
+        # TRAIN.CHECKPOINT_FILE_PATH and test it. 
+        if prunned:
+            _, model = load_checkpoint(
+                cfg.TRAIN.CHECKPOINT_FILE_PATH,
+                model,
+                cfg.NUM_GPUS > 1,
+                None,
+                quantized=quantized,
+                inflation=False,
+                convert_from_caffe2=cfg.TRAIN.CHECKPOINT_TYPE == "caffe2",
+                weights_only=weights_only,
+                pruned=True
+            )
+
+        else:
+            load_checkpoint(
+                cfg.TRAIN.CHECKPOINT_FILE_PATH,
+                model,
+                cfg.NUM_GPUS > 1,
+                None,
+                quantized=quantized,
+                inflation=False,
+                convert_from_caffe2=cfg.TRAIN.CHECKPOINT_TYPE == "caffe2",
+                weights_only=weights_only
+            )
     else:
         logger.info(
             "Unknown way of loading checkpoint. Using with random initialization, only for debugging."
         )
+
+
+    if model:
+        return model
 
 
 def load_train_checkpoint(cfg, model, optimizer, scaler=None, quantized=False):

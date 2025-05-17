@@ -799,6 +799,8 @@ class X3D(nn.Module):
             )
 
     def forward(self, x, bboxes=None):
+        #print("x shape: ", x.shape)
+        x = x[:]  # avoid pass by reference
         for module in self.children():
             x = module(x)
         return x

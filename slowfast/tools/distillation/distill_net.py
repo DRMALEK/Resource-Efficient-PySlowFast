@@ -532,13 +532,13 @@ def main():
         print(f"Error: Teacher config file path not provided.")
         return 
     
-    if not os.path.exists(cfg.DISTILLATION.TEACHER_CHECKPOINT):
-        print(f"Error: Teacher checkpoint not found: {cfg.DISTILLATION.TEACHER_CHECKPOINT}")
+    if not os.path.exists(teacher_cfg.TEST.CHECKPOINT_FILE_PATH):
+        print(f"Error: Teacher checkpoint not found: {teacher_cfg.TEST.CHECKPOINT_FILE_PATH}")
         return
 
     # Print config information
     print("Knowledge Distillation:")
-    print(f"  Teacher: {cfg.DISTILLATION.TEACHER_ARCH} from {cfg.DISTILLATION.TEACHER_CHECKPOINT}")
+    print(f"  Teacher: {cfg.DISTILLATION.TEACHER_ARCH} from {teacher_cfg.TEST.CHECKPOINT_FILE_PATH}")
     if cfg.DISTILLATION.TEACHER_CFG_FILE:
         print(f"  Teacher Config: {cfg.DISTILLATION.TEACHER_CFG_FILE}")
     print(f"  Student: {cfg.DISTILLATION.STUDENT_ARCH} (X3D-M)")

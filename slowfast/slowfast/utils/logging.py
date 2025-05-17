@@ -49,7 +49,8 @@ def setup_logging(output_dir=None):
         logging.root.handlers = []
     else:
         # Suppress logging for non-master processes.
-        _suppress_print()
+        #_suppress_print()
+        pass
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
@@ -58,6 +59,9 @@ def setup_logging(output_dir=None):
         "[%(asctime)s][%(levelname)s] %(filename)s: %(lineno)4d: %(message)s",
         datefmt="%m/%d %H:%M:%S",
     )
+
+    print("Logging to stdout")
+
 
     if du.is_master_proc():
         ch = logging.StreamHandler(stream=sys.stdout)

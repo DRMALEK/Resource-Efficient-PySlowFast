@@ -27,7 +27,7 @@ def parse_args():
         "--cfg",
         dest="cfg_file",
         help="Path to the config file",
-        default="/home/milkyway/Desktop/Student Thesis/results/x3d_M_exp1/X3D_M.yaml",
+        default="/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/pruned/X3D_M_Pruned.yaml",
         type=str,
     )
  
@@ -62,8 +62,6 @@ def measure_cpu_time_and_fps(model, inputs, num_warmup=50, num_iterations=1000):
 
 
 def main():
-    quantization = True
-
     args = parse_args()
     
     # Load config
@@ -89,19 +87,9 @@ def main():
     print("Building the model...")
     model = build_model(cfg)
     
-    # if the quantization is enabled, set the qconfig
-    if quantization:
-        model.qconfig = torch.quantization.get_default_qconfig()
-
-        # prepare the model for quantization
-        model = torch.quantization.prepare(model, inplace=False)
-
-        # convert the model to a quantized model
-        model = torch.quantization.convert(model, inplace=True)
-
     # Load checkpoint
     print("Loading the checkpoint...")
-    cu.load_test_checkpoint(cfg, model, quantized=True)
+    cu.load_checkpoint(cfg.TEST.CHECKPOINT_FILE_PATH, model)
     
 
     model.eval()
