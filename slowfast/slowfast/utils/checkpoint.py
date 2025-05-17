@@ -334,12 +334,23 @@ def load_checkpoint(
     else:
         # Load the checkpoint on CPU to avoid GPU mem spike.
         with pathmgr.open(path_to_checkpoint, "rb") as f:
+<<<<<<< HEAD
             checkpoint = torch.load(f, map_location="cpu", weights_only=weights_only)
         # Check if model has a module attribute before trying to access it
         if data_parallel and hasattr(model, 'module'):
             model_state_dict_3d = model.module.state_dict()
         else:
             model_state_dict_3d = model.state_dict()
+=======
+            checkpoint = torch.load(f, map_location="cpu")
+        
+        if data_parallel and hasattr(model, "module"):
+            model_state_dict_3d = model.module.state_dict()
+        
+        else:
+           model_state_dict_3d = model.state_dict()
+        
+>>>>>>> aa61143d (some changes)
             
         checkpoint["model_state"] = normal_to_sub_bn(
             checkpoint["model_state"], model_state_dict_3d
