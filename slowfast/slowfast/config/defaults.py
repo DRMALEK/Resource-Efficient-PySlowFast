@@ -1310,7 +1310,7 @@ _C.DISTILLATION = CfgNode()
 _C.DISTILLATION.ENABLE = False
 
 # The temperature of the softmax function.
-_C.DISTILLATION.TETEMPERATURE = 4.0
+_C.DISTILLATION.TEMPERATURE = 4.0
 
 # The temperature of the softmax function.
 _C.DISTILLATION.ALPHA = 0.5
