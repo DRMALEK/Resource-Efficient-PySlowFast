@@ -305,7 +305,7 @@ def build_teacher_model(cfg, teacher_cfg):
     if cfg.NUM_GPUS > 0:
         model = model.cuda()
         
-    return model
+    return mode
 
 
 def build_student_model(cfg):
