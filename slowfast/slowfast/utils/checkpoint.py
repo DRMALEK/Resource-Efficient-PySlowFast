@@ -214,7 +214,10 @@ def load_checkpoint(
     logger.info("Loading network weights from {}.".format(path_to_checkpoint))
 
     # Account for the DDP wrapper in the multi-gpu setting.
-    ms = model
+    if data_parallel and hasattr(model, "module"):
+        ms = model.module
+    else:
+        ms = model
     
     if quantized:
         # Load the quantized model.
@@ -228,7 +231,6 @@ def load_checkpoint(
             scaler.load_state_dict(checkpoint["scaler_state"])
         return epoch
 
-    
     
     if convert_from_caffe2:
         with pathmgr.open(path_to_checkpoint, "rb") as f:
@@ -299,9 +301,14 @@ def load_checkpoint(
         # Load the checkpoint on CPU to avoid GPU mem spike.
         with pathmgr.open(path_to_checkpoint, "rb") as f:
             checkpoint = torch.load(f, map_location="cpu")
-        model_state_dict_3d = (
-            model.module.state_dict() if data_parallel else model.state_dict()
-        )
+        
+        if data_parallel and hasattr(model, "module"):
+            model_state_dict_3d = model.module.state_dict()
+        
+        else:
+           model_state_dict_3d = model.state_dict()
+        
+            
         checkpoint["model_state"] = normal_to_sub_bn(
             checkpoint["model_state"], model_state_dict_3d
         )

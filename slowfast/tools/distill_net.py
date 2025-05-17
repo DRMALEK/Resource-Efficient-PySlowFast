@@ -70,7 +70,7 @@ def train_epoch(
     train_meter.iter_tic()
     data_size = len(loader)
     
-    for cur_iter, (inputs, labels, _, meta) in enumerate(loader):
+    for cur_iter, (inputs, labels, index, time, meta) in enumerate(loader):
         # Transfer the data to the current GPU device.
         if isinstance(inputs, (list,)):
             for i in range(len(inputs)):
@@ -161,7 +161,7 @@ def eval_epoch(
     student_model.eval()
     val_meter.iter_tic()
 
-    for cur_iter, (inputs, labels, _, meta) in enumerate(val_loader):
+    for cur_iter, (inputs, labels, index, time, meta) in enumerate(val_loader):
         # Transfer the data to the current GPU device.
         if isinstance(inputs, (list,)):
             for i in range(len(inputs)):
@@ -296,7 +296,7 @@ def build_teacher_model(cfg, teacher_cfg):
     
     # Load pre-trained weights
     checkpoint_path = teacher_cfg.TEST.CHECKPOINT_FILE_PATH
-    cu.load_test_checkpoint(teacher_cfg, model)
+    cu.load_checkpoint(checkpoint_path, model)
     
     # Set to evaluation mode
     model.eval()
@@ -305,7 +305,7 @@ def build_teacher_model(cfg, teacher_cfg):
     if cfg.NUM_GPUS > 0:
         model = model.cuda()
         
-    return mode
+    return model
 
 
 def build_student_model(cfg):
@@ -370,9 +370,7 @@ def distill_knowledge(cfg , teacher_cfg):
     # Create optimizer for student model
     student_optimizer = optim.construct_optimizer(student_model, cfg)
     
-    # Create scheduler for student optimizer
-    student_scheduler = optim.get_policy(student_optimizer, cfg)
-    
+
     # Main distillation loop
     start_epoch = 0
     if cfg.DISTILLATION.STUDENT_CHECKPOINT:
@@ -541,22 +539,22 @@ def main():
 
     # Validate configuration
     if teacher_cfg is None:
-        print(f"Error: Teacher config file path not provided.")
+        logger.error("Error: Teacher config file path not provided.")
         return 
     
     if not os.path.exists(teacher_cfg.TEST.CHECKPOINT_FILE_PATH):
-        print(f"Error: Teacher checkpoint not found: {teacher_cfg.TEST.CHECKPOINT_FILE_PATH}")
+        logger.error(f"Error: Teacher checkpoint not found: {teacher_cfg.TEST.CHECKPOINT_FILE_PATH}")
         return
 
     # Print config information
-    print("Knowledge Distillation:")
-    print(f"  Teacher: {cfg.DISTILLATION.TEACHER_ARCH} from {teacher_cfg.TEST.CHECKPOINT_FILE_PATH}")
+    logger.info("Knowledge Distillation:")
+    logger.info(f"  Teacher: {cfg.DISTILLATION.TEACHER_ARCH} from {teacher_cfg.TEST.CHECKPOINT_FILE_PATH}")
     if cfg.DISTILLATION.TEACHER_CFG_FILE:
-        print(f"  Teacher Config: {cfg.DISTILLATION.TEACHER_CFG_FILE}")
-    print(f"  Student: {cfg.DISTILLATION.STUDENT_ARCH} (X3D-M)")
-    print(f"  Temperature: {cfg.DISTILLATION.TEMPERATURE}")
-    print(f"  Alpha: {cfg.DISTILLATION.ALPHA}")
-    print(f"  Output Directory: {cfg.OUTPUT_DIR}")
+        logger.info(f"  Teacher Config: {cfg.DISTILLATION.TEACHER_CFG_FILE}")
+    logger.info(f"  Student: {cfg.DISTILLATION.STUDENT_ARCH} (X3D-M)")
+    logger.info(f"  Temperature: {cfg.DISTILLATION.TEMPERATURE}")
+    logger.info(f"  Alpha: {cfg.DISTILLATION.ALPHA}")
+    logger.info(f"  Output Directory: {cfg.OUTPUT_DIR}")
     
     # Freeze the config
     cfg.freeze()
