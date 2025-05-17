@@ -13,7 +13,7 @@ DISTILLATION:
   ALPHA: 0.5  # Weight for hard loss vs soft loss
   TEACHER_ARCH: slowfast 
   STUDENT_ARCH: x3d
-  TEACHER_CFG_FILE: "/home/malek/Master Thesis/Code/slowfast/configs/meccano/distilled/SlowFast_8x8_50_teacher.yaml"    # Path to SlowFast config file
+  TEACHER_CFG_FILE: "/workspace/Code/slowfast/configs/meccano/distilled/SlowFast_8x8_50_teacher.yaml"    # Path to SlowFast config file
   STUDENT_CHECKPOINT: ""  # Path to initialize student model (optional)
 
 # Student model configs (X3D-M)
@@ -26,13 +26,8 @@ X3D:
   BN_LIN5: True
   SCALE_RES2: True
 
-TEST:
-  ENABLE: True
-  DATASET: kinetics
-  BATCH_SIZE: 64
-  NUM_SPATIAL_CROPS: 3
-
 DATA:
+  PATH_TO_DATA_DIR: '/workspace/Dataset/'
   NUM_FRAMES: 16
   SAMPLING_RATE: 5
   TRAIN_JITTER_SCALES: [256, 320]
@@ -54,7 +49,7 @@ BN:
 SOLVER:
   BASE_LR: 0.005  # Lower LR for distillation
   LR_POLICY: cosine
-  MAX_EPOCH: 120
+  MAX_EPOCH: 1 # default is 120
   WEIGHT_DECAY: 5e-5
   WARMUP_EPOCHS: 20.0
   WARMUP_START_LR: 0.001
@@ -73,8 +68,7 @@ DATA_LOADER:
 
 NUM_GPUS: 1  # Adjust based on available resources
 RNG_SEED: 42
-OUTPUT_DIR: "./distillation_output"
+OUTPUT_DIR: "./distillation_output_exp1"
 
 TENSORBOARD:
   ENABLE: True
-  SYNC_WANDB: False

@@ -56,7 +56,6 @@ portalocker==3.1.1
 proglog==0.1.11
 protobuf==6.30.2
 psutil==7.0.0
-pyav==14.2.1
 pycocotools==2.0.8
 pyparsing==3.2.3
 python-dateutil==2.9.0.post0

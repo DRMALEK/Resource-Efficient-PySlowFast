@@ -18,6 +18,9 @@ import itertools
 import copy
 from fvcore.common.config import CfgNode
 
+# Add the path to the slowfast module or via export 'export PYTHONPATH=/path/to/SlowFast:$PYTHONPATH'
+sys.path.insert(0, '/workspace/Code/slowfast')
+
 import slowfast.models.losses as losses
 import slowfast.models.optimizer as optim
 import slowfast.utils.checkpoint as cu
@@ -78,13 +81,19 @@ def train_epoch(
         # Transfer the labels and meta data to the current GPU device.
         labels = labels.cuda()
         
+        orginal_inputs = copy.deepcopy(inputs)
+
         # Get teacher predictions (no grad needed)
         with torch.no_grad():
-            teacher_preds = teacher_model(inputs)
+            teacher_inputs = pack_pathway_output(cfg, inputs)
+            teacher_preds = teacher_model(teacher_inputs)
         
         # Update the student model
         student_optimizer.zero_grad()
-        student_preds = student_model(inputs)
+
+        inputs = orginal_inputs
+        student_inputs = pack_pathway_output(cfg, inputs)
+        student_preds = student_model(student_inputs)
         
         # Calculate distillation loss
         loss = distill_loss_fn(student_preds, teacher_preds, labels)
@@ -286,8 +295,8 @@ def build_teacher_model(cfg, teacher_cfg):
     model = build_model(teacher_cfg)
     
     # Load pre-trained weights
-    checkpoint_path = teacher_cfg.TRAIN.CHECKPOINT_FILE_PATH
-    cu.load_checkpoint(checkpoint_path, model)
+    checkpoint_path = teacher_cfg.TEST.CHECKPOINT_FILE_PATH
+    cu.load_test_checkpoint(teacher_cfg, model)
     
     # Set to evaluation mode
     model.eval()
@@ -341,7 +350,7 @@ def distill_knowledge(cfg , teacher_cfg):
     
     
     # Build teacher and student models
-    teacher_model = build_teacher_model(teacher_cfg)
+    teacher_model = build_teacher_model(cfg, teacher_cfg)
     student_model = build_student_model(cfg)
     
     # Create distillation loss function
@@ -476,7 +485,7 @@ def parse_args():
         "--cfg",
         dest="cfg_file",
         help="Path to the distillation config file",
-        default="",
+        default="/workspace/Code/slowfast/configs/meccano/distilled/SlowFast_to_X3D_M.yaml",
         type=str,
     )
     
@@ -500,9 +509,9 @@ def load_config(args):
     if args.cfg_file is not None:
         cfg.merge_from_file(args.cfg_file)
 
-    if args.DISTILLATION.TEACHER_CFG_FILE is not None:
+    if cfg.DISTILLATION.TEACHER_CFG_FILE is not None:
         teacher_cfg = get_cfg()
-        teacher_cfg.merge_from_file(args.DISTILLATION.TEACHER_CFG_FILE)   
+        teacher_cfg.merge_from_file(cfg.DISTILLATION.TEACHER_CFG_FILE)   
 
 
     # Create output directory if not exists
@@ -520,6 +529,9 @@ def main():
     args = parse_args()
     cfg, teacher_cfg = load_config(args)
 
+
+    logging.setup_logging(cfg.OUTPUT_DIR)
+
     # Set random seed from configs.
     np.random.seed(cfg.RNG_SEED)
     torch.manual_seed(cfg.RNG_SEED)
@@ -532,13 +544,13 @@ def main():
         print(f"Error: Teacher config file path not provided.")
         return 
     
-    if not os.path.exists(cfg.DISTILLATION.TEACHER_CHECKPOINT):
-        print(f"Error: Teacher checkpoint not found: {cfg.DISTILLATION.TEACHER_CHECKPOINT}")
+    if not os.path.exists(teacher_cfg.TEST.CHECKPOINT_FILE_PATH):
+        print(f"Error: Teacher checkpoint not found: {teacher_cfg.TEST.CHECKPOINT_FILE_PATH}")
         return
 
     # Print config information
     print("Knowledge Distillation:")
-    print(f"  Teacher: {cfg.DISTILLATION.TEACHER_ARCH} from {cfg.DISTILLATION.TEACHER_CHECKPOINT}")
+    print(f"  Teacher: {cfg.DISTILLATION.TEACHER_ARCH} from {teacher_cfg.TEST.CHECKPOINT_FILE_PATH}")
     if cfg.DISTILLATION.TEACHER_CFG_FILE:
         print(f"  Teacher Config: {cfg.DISTILLATION.TEACHER_CFG_FILE}")
     print(f"  Student: {cfg.DISTILLATION.STUDENT_ARCH} (X3D-M)")

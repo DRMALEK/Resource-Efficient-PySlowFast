@@ -214,7 +214,7 @@ def load_checkpoint(
     logger.info("Loading network weights from {}.".format(path_to_checkpoint))
 
     # Account for the DDP wrapper in the multi-gpu setting.
-    ms = model.module if data_parallel else model
+    ms = model
     
     if quantized:
         # Load the quantized model.
