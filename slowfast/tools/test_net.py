@@ -200,7 +200,7 @@ def test(cfg):
                 model.init_knn_labels(train_loader)
 
         if cfg.PRUNING.ENABLE:
-            model = cu.load_test_checkpoint(cfg, model)
+            model = cu.load_test_checkpoint(cfg, model, prunned=True)
         
         else:
             # Load the checkpoint.

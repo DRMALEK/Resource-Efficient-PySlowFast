@@ -180,6 +180,8 @@ def prune_model(cfg, args):
         #forward_fn=model_forward_wrapper  # Use the wrapper to handle input formatting
     )
     
+    logger.info(f"Using Global Pruning method: {cfg.PRUNING.GLOBAL}")
+
     # Print model statistics before pruning
     ori_size = tp.utils.count_params(model)
     logger.info("="*50)
@@ -263,10 +265,10 @@ def run_pipeline(args):
     logging.setup_logging(cfg.OUTPUT_DIR)
 
     logger.info("Configuration loaded:")
-    pruned_model_path = prune_model(cfg, args)
+    #pruned_model_path = prune_model(cfg, args)
 
     logger.info("Model pruning completed.")
-    finetune_model(cfg, pruned_model_path)
+    #finetune_model(cfg, cfg.TEST.CHECKPOINT_FILE_PATH)
         
     logger.info("Model finetuning completed.")
 

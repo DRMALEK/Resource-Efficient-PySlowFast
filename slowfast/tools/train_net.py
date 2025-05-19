@@ -779,14 +779,28 @@ def train(cfg):
 
         # Save a checkpoint.
         if is_checkp_epoch:
-            cu.save_checkpoint(
-                cfg.OUTPUT_DIR,
-                model,
-                optimizer,
-                cur_epoch,
-                cfg,
-                scaler if cfg.TRAIN.MIXED_PRECISION else None,
-            )
+            
+            if cfg.PRUNING.ENABLE:
+                cu.save_checkpoint(
+                    cfg.OUTPUT_DIR,
+                    model,
+                    optimizer,
+                    cur_epoch,
+                    cfg,
+                    scaler if cfg.TRAIN.MIXED_PRECISION else None,
+                    pruned=True
+                )
+            
+            else:
+                cu.save_checkpoint(
+                    cfg.OUTPUT_DIR,
+                    model,
+                    optimizer,
+                    cur_epoch,
+                    cfg,
+                    scaler if cfg.TRAIN.MIXED_PRECISION else None,
+                )
+        
         # Evaluate the model on validation set.
         if is_eval_epoch:
             eval_epoch(

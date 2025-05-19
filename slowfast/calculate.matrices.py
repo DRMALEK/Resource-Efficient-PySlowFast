@@ -30,6 +30,8 @@ def parse_args():
         default="/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/pruned/X3D_M_Pruned.yaml",
         type=str,
     )
+
+
  
     return parser.parse_args()
 
@@ -89,11 +91,15 @@ def main():
     
     # Load checkpoint
     print("Loading the checkpoint...")
-    cu.load_checkpoint(cfg.TEST.CHECKPOINT_FILE_PATH, model)
-    
+
+    if cfg.PRUNING.ENABLE:
+        _, model = cu.load_checkpoint(cfg.TEST.CHECKPOINT_FILE_PATH, model, pruned=True)
+    else:
+        cu.load_checkpoint(cfg.TEST.CHECKPOINT_FILE_PATH, model)
+
 
     model.eval()
-    #model = model.cpu()  # Move the model to CPU for inference
+    model = model.cpu()  # Move the model to CPU for inference
 
     # Create random input
     rgb_dimension = 3

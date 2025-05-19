@@ -226,7 +226,7 @@ def load_checkpoint(
         (int): the number of training epoch of the checkpoint.
     """
     logger.info("Loading network weights from {}.".format(path_to_checkpoint))
-    
+                
     # Account for the DDP wrapper in the multi-gpu setting.
     if data_parallel and hasattr(model, "module"):
         ms = model.module
@@ -236,6 +236,8 @@ def load_checkpoint(
     if pruned:
         with pathmgr.open(path_to_checkpoint, "rb") as f:
             checkpoint = torch.load(f, weights_only=weights_only)
+
+            print("Checkpoint keys: ", checkpoint.keys())
 
             loaded_model = checkpoint["model"]
             
