@@ -45,7 +45,7 @@ TEST:
   ENABLE: True
   DATASET: meccano
   BATCH_SIZE: 96
-  CHECKPOINT_FILE_PATH: "/workspace/baseline/slowfast/SLOWFAST_8x8_R50_RGB_MECCANO.pyth"
+  CHECKPOINT_FILE_PATH: "/home/milkyway/Desktop/Student Thesis/Slowfast/baseline/slowfast/SLOWFAST_8x8_R50_RGB_MECCANO.pyth"
 
 DATA:
   PATH_TO_DATA_DIR: /path_to_your_data_dir/

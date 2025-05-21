@@ -197,7 +197,11 @@ class Meccano(torch.utils.data.Dataset):
                 random_horizontal_flip=self.cfg.DATA.RANDOM_FLIP,
             )
         label = self._labels[index]
-        frames = utils.pack_pathway_output(self.cfg, frames)
+        
+         # Skip this step in case of distillation, because will have two different networks, with different pathway stuctucture
+        if not self.cfg.DISTILLATION.ENABLE:     
+            frames = utils.pack_pathway_output(self.cfg, frames)
+       
         return frames, label, index, {}, {}
 
     def __len__(self):
