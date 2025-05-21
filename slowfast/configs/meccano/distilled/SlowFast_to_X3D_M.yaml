@@ -1,7 +1,7 @@
 TRAIN:
   ENABLE: True
   DATASET: meccano
-  BATCH_SIZE: 64
+  BATCH_SIZE: 8
   EVAL_PERIOD: 5
   CHECKPOINT_PERIOD: 5
   AUTO_RESUME: True
@@ -13,7 +13,7 @@ DISTILLATION:
   ALPHA: 0.5  # Weight for hard loss vs soft loss
   TEACHER_ARCH: slowfast 
   STUDENT_ARCH: x3d
-  TEACHER_CFG_FILE: "/workspace/Code/slowfast/configs/meccano/distilled/SlowFast_8x8_50_teacher.yaml"    # Path to SlowFast config file
+  TEACHER_CFG_FILE: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/distilled/SlowFast_8x8_50_teacher.yaml"    # Path to SlowFast config file
   STUDENT_CHECKPOINT: ""  # Path to initialize student model (optional)
 
 # Student model configs (X3D-M)
@@ -27,7 +27,7 @@ X3D:
   SCALE_RES2: True
 
 DATA:
-  PATH_TO_DATA_DIR: '/workspace/Dataset/'
+  PATH_TO_DATA_DIR: '/home/milkyway/Desktop/Student Thesis/Datasets/RGB_frames/'
   NUM_FRAMES: 16
   SAMPLING_RATE: 5
   TRAIN_JITTER_SCALES: [256, 320]
@@ -49,7 +49,7 @@ BN:
 SOLVER:
   BASE_LR: 0.005  # Lower LR for distillation
   LR_POLICY: cosine
-  MAX_EPOCH: 1 # default is 120
+  MAX_EPOCH: 120 # default is 120
   WEIGHT_DECAY: 5e-5
   WARMUP_EPOCHS: 20.0
   WARMUP_START_LR: 0.001
@@ -64,11 +64,11 @@ MODEL:
 
 DATA_LOADER:
   NUM_WORKERS: 8
-  PIN_MEMORY: True
+  PIN_MEMORY: False
 
 NUM_GPUS: 1  # Adjust based on available resources
 RNG_SEED: 42
-OUTPUT_DIR: "./distillation_output_exp1"
+OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp1"
 
 TENSORBOARD:
   ENABLE: True

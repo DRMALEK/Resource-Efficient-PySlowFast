@@ -17,10 +17,15 @@ import argparse
 import itertools
 import copy
 from fvcore.common.config import CfgNode
+from fvcore.nn.precise_bn import get_bn_modules, update_bn_stats
+
 
 # Add the path to the slowfast module or via export 'export PYTHONPATH=/path/to/SlowFast:$PYTHONPATH'
-sys.path.insert(0, '/workspace/Code/slowfast')
+#sys.path.insert(0, '/workspace/Code/slowfast')
+sys.path.insert(0, '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast')
 
+
+from slowfast.datasets.utils import pack_pathway_output
 import slowfast.models.losses as losses
 import slowfast.models.optimizer as optim
 import slowfast.utils.checkpoint as cu
@@ -47,99 +52,168 @@ def train_epoch(
     train_meter,
     cur_epoch,
     cfg,
+    teacher_cfg,
     writer=None,
 ):
     """
     Perform knowledge distillation training for one epoch.
     Args:
-        teacher_model (model): the pre-trained teacher model.
-        student_model (model): the student model to train.
-        loader (loader): video loader.
-        distill_loss_fn (nn.Module): distillation loss function.
-        student_optimizer (optim): optimizer for student model parameters.
+        teacher_model (model): the pre-trained teacher model (SlowFast).
+        student_model (model): the student model to train (X3D-M).
+        loader (loader): video training loader.
+        distill_loss_fn (loss): distillation loss function.
+        student_optimizer (optim): the optimizer to perform optimization on the student model's parameters.
         train_meter (TrainMeter): training meters to log the training performance.
         cur_epoch (int): current epoch of training.
-        cfg (CfgNode): configs. Details can be found in slowfast/config/defaults.py
-        writer (TensorboardWriter, optional): TensorboardWriter object
-            to writer Tensorboard log.
+        cfg (CfgNode): configs for the student model.
+        teacher_cfg (CfgNode): configs for the teacher model.
+        writer (TensorboardWriter, optional): TensorboardWriter object to writer Tensorboard log.
     """
-    # Enable train mode.
-    teacher_model.eval()  # Teacher is always in evaluation mode
+    # Set teacher to eval mode and student to train mode
+    teacher_model.eval()
     student_model.train()
-    
     train_meter.iter_tic()
     data_size = len(loader)
+
+    # Explicitly declare reduction to mean for standard classification loss
+    cls_loss_fun = losses.get_loss_func(cfg.MODEL.LOSS_FUNC)(reduction="mean")
     
+    # Create scaler for mixed precision training if enabled
+    scaler = torch.cuda.amp.GradScaler(enabled=cfg.TRAIN.MIXED_PRECISION)
+
     for cur_iter, (inputs, labels, index, time, meta) in enumerate(loader):
-        # Transfer the data to the current GPU device.
-        if isinstance(inputs, (list,)):
-            for i in range(len(inputs)):
-                inputs[i] = inputs[i].cuda(non_blocking=True)
-        else:
-            inputs = inputs.cuda(non_blocking=True)
-        
-        # Transfer the labels and meta data to the current GPU device.
-        labels = labels.cuda()
-        
-        orginal_inputs = copy.deepcopy(inputs)
+        # Transfer the data to the current GPU device
+        if cfg.NUM_GPUS:
+            if isinstance(inputs, (list,)):
+                for i in range(len(inputs)):
+                    if isinstance(inputs[i], (list,)):
+                        for j in range(len(inputs[i])):
+                            inputs[i][j] = inputs[i][j].cuda(non_blocking=True)
+                    else:
+                        inputs[i] = inputs[i].cuda(non_blocking=True)
+            else:
+                inputs = inputs.cuda(non_blocking=True)
+            
+            labels = labels.cuda(non_blocking=True)
+            index = index.cuda(non_blocking=True)
+            
+            for key, val in meta.items():
+                if isinstance(val, (list,)):
+                    for i in range(len(val)):
+                        val[i] = val[i].cuda(non_blocking=True)
+                else:
+                    meta[key] = val.cuda(non_blocking=True)
 
-        # Get teacher predictions (no grad needed)
-        with torch.no_grad():
-            teacher_inputs = pack_pathway_output(cfg, inputs)
-            teacher_preds = teacher_model(teacher_inputs)
+        batch_size = (
+            inputs[0][0].size(0) if isinstance(inputs[0], list) else inputs[0].size(0)
+        )
         
-        # Update the student model
-        student_optimizer.zero_grad()
+        # Update the learning rate
+        epoch_exact = cur_epoch + float(cur_iter) / data_size
+        lr = optim.get_epoch_lr(epoch_exact, cfg)
+        optim.set_lr(student_optimizer, lr)
 
-        inputs = orginal_inputs
-        student_inputs = pack_pathway_output(cfg, inputs)
-        student_preds = student_model(student_inputs)
+        train_meter.data_toc()
         
-        # Calculate distillation loss
-        loss = distill_loss_fn(student_preds, teacher_preds, labels)
-        
-        # Check Nan Loss.
+        with torch.cuda.amp.autocast(enabled=cfg.TRAIN.MIXED_PRECISION):
+            # Zero gradients
+            student_optimizer.zero_grad()
+            
+            # Get teacher predictions (no grad)
+
+            orginal_inputs = copy.deepcopy(inputs)
+
+            with torch.no_grad():
+                teacher_inputs = pack_pathway_output(teacher_cfg, inputs)
+                teacher_preds = teacher_model(teacher_inputs)
+                
+            # Get student predictions
+            student_inputs = pack_pathway_output(cfg, orginal_inputs)
+            student_preds = student_model(student_inputs)
+            
+            # Compute distillation loss (combination of distillation and regular classification loss)
+            loss = distill_loss_fn(student_preds, teacher_preds, labels)
+            
+        # Check for NaN losses
         misc.check_nan_losses(loss)
         
-        # Perform the backward pass.
-        loss.backward()
-        # Update the parameters.
-        student_optimizer.step()
+        # Backward pass with scaling for mixed precision training
+        scaler.scale(loss).backward()
         
-        # Compute the errors.
+        # Unscale gradients for clipping
+        scaler.unscale_(student_optimizer)
+        
+        # Clip gradients if necessary
+        if cfg.SOLVER.CLIP_GRAD_VAL:
+            grad_norm = torch.nn.utils.clip_grad_value_(
+                student_model.parameters(), cfg.SOLVER.CLIP_GRAD_VAL
+            )
+        elif cfg.SOLVER.CLIP_GRAD_L2NORM:
+            grad_norm = torch.nn.utils.clip_grad_norm_(
+                student_model.parameters(), cfg.SOLVER.CLIP_GRAD_L2NORM
+            )
+        else:
+            grad_norm = optim.get_grad_norm_(student_model.parameters())
+            
+        # Update the parameters
+        scaler.step(student_optimizer)
+        scaler.update()
+        
+        # Compute accuracy metrics
         num_topks_correct = metrics.topks_correct(student_preds, labels, (1, 5))
         top1_err, top5_err = [
             (1.0 - x / student_preds.size(0)) * 100.0 for x in num_topks_correct
         ]
         
-        # Gather all the predictions across all the devices.
+        # Gather all the predictions across all the devices
         if cfg.NUM_GPUS > 1:
-            loss, top1_err, top5_err = du.all_reduce([loss, top1_err, top5_err])
+            loss, grad_norm, top1_err, top5_err = du.all_reduce(
+                [loss.detach(), grad_norm, top1_err, top5_err]
+            )
             
-        # Copy the stats from GPU to CPU (sync point).
-        loss, top1_err, top5_err = (
+        # Copy the stats from GPU to CPU (sync point)
+        loss, grad_norm, top1_err, top5_err = (
             loss.item(),
+            grad_norm.item(),
             top1_err.item(),
             top5_err.item(),
         )
         
-        train_meter.iter_toc()
-        
-        # Update and log stats.
+        # Update and log stats
         train_meter.update_stats(
             top1_err,
             top5_err,
             loss,
-            inputs[0].size(0) if isinstance(inputs, (list,)) else inputs.size(0),
+            lr,
+            grad_norm,
+            batch_size * max(cfg.NUM_GPUS, 1),
+            None,  # No extra loss
         )
         
+        # Write to tensorboard format if available
+        if writer is not None:
+            writer.add_scalars(
+                {
+                    "Train/loss": loss,
+                    "Train/lr": lr,
+                    "Train/Top1_err": top1_err,
+                    "Train/Top5_err": top5_err,
+                },
+                global_step=data_size * cur_epoch + cur_iter,
+            )
+            
+        train_meter.iter_toc()  # Measure allreduce for this meter
         train_meter.log_iter_stats(cur_epoch, cur_iter)
+        torch.cuda.synchronize()
         train_meter.iter_tic()
         
-    # Log epoch stats.
+    # Clear memory
+    del inputs
+    torch.cuda.empty_cache()
+    
+    # Log epoch stats
     train_meter.log_epoch_stats(cur_epoch)
     train_meter.reset()
-
 
 @torch.no_grad()
 def eval_epoch(
@@ -148,140 +222,111 @@ def eval_epoch(
     """
     Evaluate the student model on the validation set.
     Args:
-        student_model (model): the student model to evaluate.
+        student_model (model): student model to evaluate.
         val_loader (loader): data loader to provide validation data.
         val_meter (ValMeter): meter instance to record and calculate the metrics.
-        cur_epoch (int): number of the current epoch of training.
-        cfg (CfgNode): configs. Details can be found in slowfast/config/defaults.py
-        writer (TensorboardWriter, optional): TensorboardWriter object
-            to writer Tensorboard log.
+        cur_epoch (int): current epoch of training.
+        cfg (CfgNode): configs for the student model.
+        writer (TensorboardWriter, optional): TensorboardWriter object to writer Tensorboard log.
     """
-
     # Evaluation mode enabled. The running stats would not be updated.
     student_model.eval()
     val_meter.iter_tic()
 
     for cur_iter, (inputs, labels, index, time, meta) in enumerate(val_loader):
-        # Transfer the data to the current GPU device.
-        if isinstance(inputs, (list,)):
-            for i in range(len(inputs)):
-                inputs[i] = inputs[i].cuda(non_blocking=True)
-        else:
-            inputs = inputs.cuda(non_blocking=True)
-            
-        labels = labels.cuda()
-
-        # Compute the predictions from student model
-        preds = student_model(inputs)
-
-        # Compute the errors
-        num_topks_correct = metrics.topks_correct(preds, labels, (1, 5))
-        top1_err, top5_err = [
-            (1.0 - x / preds.size(0)) * 100.0 for x in num_topks_correct
-        ]
-
-        if cfg.NUM_GPUS > 1:
-            top1_err, top5_err = du.all_reduce([top1_err, top5_err])
-
-        # Copy the stats from GPU to CPU (sync point)
-        top1_err, top5_err = top1_err.item(), top5_err.item()
-
-        val_meter.iter_toc()
-        
-        # Update and log stats
-        val_meter.update_stats(
-            top1_err,
-            top5_err,
-            inputs[0].size(0) if isinstance(inputs, (list,)) else inputs.size(0),
-        )
-        val_meter.log_iter_stats(cur_epoch, cur_iter)
-        val_meter.iter_tic()
-
-    # Log epoch stats
-    val_meter.log_epoch_stats(cur_epoch)
-    val_meter.reset()
-
-
-def calculate_and_update_precise_bn(loader, model, num_iters=200, use_gpu=True):
-    """
-    Update the batch norm stats to make them more precise. During
-    training both BN stats and the weight are changing after every
-    iteration, so the running average can not precisely reflect the
-    actual stats of the current model.
-    In this function, the BN stats are recomputed with fixed weights, to make
-    the running average more precise. Specifically, it computes the true average
-    of per-batch mean/variance instead of the running average.
-    Args:
-        loader (loader): data loader to provide training data.
-        model (model): model to update the BN stats.
-        num_iters (int): number of iterations to compute and update the BN stats.
-        use_gpu (bool): whether to use GPU or not.
-    """
-
-    def _get_num_samples_count(loader):
-        """Get the number of samples in the data loader."""
-        num_samples = 0
-        for _, _, _, meta in loader:
-            num_samples += meta["boxes"].shape[0] if "boxes" in meta else meta["img_size"].shape[0]
-        return num_samples
-
-    # Compute the number of mini-batches to use
-    num_samples = _get_num_samples_count(loader)
-    num_iters = min(num_samples // loader.batch_size, num_iters)
-
-    # Retrieve the BN layers
-    bn_layers = [
-        m for m in model.modules() if any(
-            isinstance(m, bn_type)
-            for bn_type in [
-                torch.nn.BatchNorm1d,
-                torch.nn.BatchNorm2d, 
-                torch.nn.BatchNorm3d
-            ]
-        )
-    ]
-
-    if len(bn_layers) == 0:
-        return
-
-    # Initialize variables to compute mean and variance
-    running_mean = [torch.zeros_like(bn.running_mean) for bn in bn_layers]
-    running_var = [torch.zeros_like(bn.running_var) for bn in bn_layers]
-    
-    # Remember the previous state
-    previous_states = [
-        (bn.running_mean.clone(), bn.running_var.clone(), bn.training)
-        for bn in bn_layers
-    ]
-
-    # Set the BN layers to eval mode so they don't update themselves
-    for bn in bn_layers:
-        bn.eval()
-
-    # Accumulate the statistics
-    for inputs, _, _, _ in tqdm.tqdm(itertools.islice(loader, num_iters)):
-        if use_gpu:
+        if cfg.NUM_GPUS:
+            # Transfer the data to the current GPU device.
             if isinstance(inputs, (list,)):
                 for i in range(len(inputs)):
                     inputs[i] = inputs[i].cuda(non_blocking=True)
             else:
                 inputs = inputs.cuda(non_blocking=True)
+            labels = labels.cuda()
+            for key, val in meta.items():
+                if isinstance(val, (list,)):
+                    for i in range(len(val)):
+                        val[i] = val[i].cuda(non_blocking=True)
+                else:
+                    meta[key] = val.cuda(non_blocking=True)
+            index = index.cuda()
+            
+        batch_size = (
+            inputs[0][0].size(0) if isinstance(inputs[0], list) else inputs[0].size(0)
+        )
+        val_meter.data_toc()
 
-        with torch.no_grad():
-            model(inputs)
+        # Forward pass
+        #student_inputs = pack_pathway_output(cfg, inputs)
+        preds = student_model([inputs])
+        
+        # Compute the errors.
+        num_topks_correct = metrics.topks_correct(preds, labels, (1, 5))
+        
+        # Combine the errors across the GPUs.
+        top1_err, top5_err = [
+            (1.0 - x / preds.size(0)) * 100.0 for x in num_topks_correct
+        ]
+        if cfg.NUM_GPUS > 1:
+            top1_err, top5_err = du.all_reduce([top1_err, top5_err])
+            
+        # Copy the errors from GPU to CPU (sync point).
+        top1_err, top5_err = top1_err.item(), top5_err.item()
+            
+        val_meter.iter_toc()
+        # Update and log stats.
+        val_meter.update_stats(
+            top1_err,
+            top5_err,
+            batch_size * max(cfg.NUM_GPUS, 1),
+        )
+        
+        # Write to tensorboard format if available.
+        if writer is not None:
+            writer.add_scalars(
+                {"Val/Top1_err": top1_err, "Val/Top5_err": top5_err},
+                global_step=len(val_loader) * cur_epoch + cur_iter,
+            )
+            
+        val_meter.update_predictions(preds, labels)
+        val_meter.log_iter_stats(cur_epoch, cur_iter)
+        val_meter.iter_tic()
+        
+    # Log epoch stats.
+    val_meter.log_epoch_stats(cur_epoch)
+    
+    # Write to tensorboard format if available.
+    if writer is not None:
+        all_preds = [pred.clone().detach() for pred in val_meter.all_preds]
+        all_labels = [label.clone().detach() for label in val_meter.all_labels]
+        if cfg.NUM_GPUS:
+            all_preds = [pred.cpu() for pred in all_preds]
+            all_labels = [label.cpu() for label in all_labels]
+        writer.plot_eval(preds=all_preds, labels=all_labels, global_step=cur_epoch)
+        
+    val_meter.reset()
 
-        for i, bn in enumerate(bn_layers):
-            running_mean[i] += bn.running_mean
-            running_var[i] += bn.running_var
 
-    # Average over the iters
-    for i, bn in enumerate(bn_layers):
-        running_mean[i] /= num_iters
-        running_var[i] /= num_iters
-        bn.running_mean = running_mean[i]
-        bn.running_var = running_var[i]
-        bn.training = previous_states[i][2]
+def calculate_and_update_precise_bn(loader, model, num_iters=200, use_gpu=True):
+    """
+    Update the stats in bn layers by calculate the precise stats.
+    Args:
+        loader (loader): data loader to provide training data.
+        model (model): model to update the bn stats.
+        num_iters (int): number of iterations to compute and update the bn stats.
+        use_gpu (bool): whether to use GPU or not.
+    """
+    def _gen_loader():
+        for inputs, *_ in loader:
+            if use_gpu:
+                if isinstance(inputs, (list,)):
+                    for i in range(len(inputs)):
+                        inputs[i] = inputs[i].cuda(non_blocking=True)
+                else:
+                    inputs = inputs.cuda(non_blocking=True)
+            yield inputs
 
+    # Update the bn stats.
+    update_bn_stats(model, _gen_loader(), num_iters)
 
 def build_teacher_model(cfg, teacher_cfg):
     """
@@ -388,14 +433,12 @@ def distill_knowledge(cfg , teacher_cfg):
         
     # Perform the training loop
     logger.info("Start knowledge distillation training")
-    epoch_timer = EpochTimer()
     
     for cur_epoch in range(start_epoch, cfg.SOLVER.MAX_EPOCH):
         # Shuffle the dataset
         loader.shuffle_dataset(train_loader, cur_epoch)
         
         # Train for one epoch
-        epoch_timer.epoch_tic()
         train_epoch(
             teacher_model,
             student_model,
@@ -405,13 +448,13 @@ def distill_knowledge(cfg , teacher_cfg):
             train_meter,
             cur_epoch,
             cfg,
+            teacher_cfg,
             writer,
         )
-        epoch_timer.epoch_toc()
         
         # Update learning rate
-        lr = student_scheduler.get_last_lr()[0]
-        student_optimizer = student_scheduler.step()
+        lr = optim.get_epoch_lr(cur_epoch + 1, cfg)
+        optim.set_lr(student_optimizer, lr)
         
         # Compute precise BN stats
         if cfg.BN.USE_PRECISE_STATS:
@@ -483,7 +526,7 @@ def parse_args():
         "--cfg",
         dest="cfg_file",
         help="Path to the distillation config file",
-        default="/workspace/Code/slowfast/configs/meccano/distilled/SlowFast_to_X3D_M.yaml",
+        default="/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/distilled/SlowFast_to_X3D_M.yaml",
         type=str,
     )
     
