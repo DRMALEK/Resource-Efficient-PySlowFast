@@ -3,8 +3,8 @@ PRUNING:
   GLOBAL: True
   ISOMORPHIC: True
   PRUNING_METHOD: 'l1'
-  PRUNING_RATE: 0.25
-  PRUNING_MAX_EPOCH: 40
+  PRUNING_RATE: 0.05
+  PRUNING_MAX_RATE: 0.5
   CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/results/x3d_M_exp1/checkpoints/checkpoint_epoch_00120.pyth'
   CHECKPOINT_TYPE: pytorch
   EVALUATE_AFTER_FINE_TUNNING: True
@@ -15,7 +15,7 @@ TRAIN:
   DATASET: meccano
   BATCH_SIZE: 16
   EVAL_PERIOD: 10
-  CHECKPOINT_PERIOD: 5
+  CHECKPOINT_PERIOD: 20
   AUTO_RESUME: True
   CHECKPOINT_TYPE: pytorch
 
@@ -30,7 +30,7 @@ TEST:
   ENABLE: True
   DATASET: meccano
   BATCH_SIZE: 128
-  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/X3D_M_pruned_exp4/pruned_model_l1_ratio25.pyth' # 76.21% top1 30-view accuracy to download from the model zoo (optional).
+  CHECKPOINT_FILE_PATH: '' # 76.21% top1 30-view accuracy to download from the model zoo (optional).
   # NUM_SPATIAL_CROPS: 1
   NUM_SPATIAL_CROPS: 3
 
@@ -59,7 +59,7 @@ SOLVER:
   BASE_LR: 0.1 # 1 machine
   BASE_LR_SCALE_NUM_SHARDS: True
   LR_POLICY: cosine
-  MAX_EPOCH: 60
+  MAX_EPOCH: 120
   WEIGHT_DECAY: 5e-5
   WARMUP_EPOCHS: 35.0
   WARMUP_START_LR: 0.01
@@ -78,4 +78,4 @@ DATA_LOADER:
 
 NUM_GPUS: 1
 RNG_SEED: 0
-OUTPUT_DIR: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/X3D_M_pruned_exp4'
+OUTPUT_DIR: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/X3D_M_pruned_exp5'

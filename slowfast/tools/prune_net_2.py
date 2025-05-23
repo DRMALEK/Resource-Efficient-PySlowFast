@@ -62,8 +62,6 @@ def setup_cfg(args):
     if not os.path.exists(checkpoints_dir):
         os.makedirs(checkpoints_dir)
         
-    # Set output directory
-    #cfg.OUTPUT_DIR = args.output_dir
         
     return cfg
 
@@ -262,27 +260,35 @@ def run_pipeline(args):
     """
     cfg = setup_cfg(args)
     
-    logging.setup_logging(cfg.OUTPUT_DIR)
+    pruning_max_rate = cfg.PRUNING.PRUNING_MAX_RATE
+    output_dir = cfg.OUTPUT_DIR
+    starting_prune_rate = 0.05
 
-    logger.info("Configuration loaded:")
-    #pruned_model_path = prune_model(cfg, args)
-
-    logger.info("Model pruning completed.")
-    #finetune_model(cfg, cfg.TEST.CHECKPOINT_FILE_PATH)
+    while starting_prune_rate <= pruning_max_rate:
+        cfg.PRUNING.PRUNING_RATE = starting_prune_rate
+        logger.info(f"Starting pruning with rate: {starting_prune_rate}")
         
-    logger.info("Model finetuning completed.")
+        cfg.OUTPUT_DIR = os.path.join(output_dir, f"pruning_rate_{int(starting_prune_rate*100)}") # set output dir for each pruning rate
+        logger.info(f"Output directory: {cfg.output_dir}")
 
-    if cfg.PRUNING.EVALUATE_AFTER_FINE_TUNNING:
-        evaluate_model(cfg)
-        pass 
-    
-    logger.info("Model evaluation completed.")
+        logging.setup_logging(cfg.OUTPUT_DIR)
 
+        pruned_model_path = prune_model(cfg, args)
+        logger.info("Model pruning completed.")
+
+        finetune_model(cfg, pruned_model_path)
+        logger.info("Model finetuning completed.")
+
+        if cfg.PRUNING.EVALUATE_AFTER_FINE_TUNNING:
+            evaluate_model(cfg)
+            logger.info("Model evaluation completed.")
+
+        starting_prune_rate += 0.05
+        logger.info(f"Next pruning rate: {starting_prune_rate}")
 
 def main():
     args = parse_custom_args()    
     run_pipeline(args)
-
 
 if __name__ == "__main__":
     main()
