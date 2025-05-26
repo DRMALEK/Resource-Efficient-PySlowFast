@@ -28,6 +28,7 @@ from slowfast.models.contrastive import (
 )
 from slowfast.utils.meters import AVAMeter, EpochTimer, TrainMeter, ValMeter
 from slowfast.utils.multigrid import MultigridSchedule
+from slowfast.utils.early_stopping import EarlyStopping
 
 logger = logging.get_logger(__name__)
 
@@ -660,6 +661,17 @@ def train(cfg):
         train_meter = TrainMeter(len(train_loader), cfg)
         val_meter = ValMeter(len(val_loader), cfg)
 
+    # Initialize early stopping if enabled
+    early_stopping = None
+    if cfg.SOLVER.EARLY_STOPPING.ENABLE:
+        early_stopping = EarlyStopping(
+            patience=cfg.SOLVER.EARLY_STOPPING.PATIENCE,
+            min_delta=cfg.SOLVER.EARLY_STOPPING.MIN_DELTA,
+            mode=cfg.SOLVER.EARLY_STOPPING.MODE,
+            restore_best_weights=cfg.SOLVER.EARLY_STOPPING.RESTORE_BEST_WEIGHTS
+        )
+        logger.info(f"Early stopping enabled with metric: {cfg.SOLVER.EARLY_STOPPING.METRIC}")
+
     # set up writer for logging to Tensorboard format.
     if cfg.TENSORBOARD.ENABLE and du.is_master_proc(cfg.NUM_GPUS * cfg.NUM_SHARDS):
         writer = tb.TensorboardWriter(cfg)
@@ -812,6 +824,42 @@ def train(cfg):
                 train_loader,
                 writer,
             )
+            
+            # Check early stopping condition
+            if early_stopping is not None:
+                # Get the current validation metric value
+                epoch_stats = val_meter.get_epoch_stats()
+                metric_name = cfg.SOLVER.EARLY_STOPPING.METRIC
+                
+                if metric_name in epoch_stats:
+                    current_metric = epoch_stats[metric_name]
+                    
+                    # Check if early stopping should trigger
+                    should_stop = early_stopping(current_metric, cur_epoch)
+                    
+                    if should_stop:
+                        logger.info(f"Early stopping triggered at epoch {cur_epoch}")
+                        logger.info(f"Best {metric_name}: {early_stopping.get_best_score():.4f} "
+                                   f"at epoch {early_stopping.get_best_epoch()}")
+                        
+                        # Save final checkpoint with early stopping info
+                        if cfg.SOLVER.EARLY_STOPPING.RESTORE_BEST_WEIGHTS:
+                            logger.info("Saving model with best weights from early stopping")
+                        
+                        cu.save_checkpoint(
+                            cfg.OUTPUT_DIR,
+                            model,
+                            optimizer,
+                            cur_epoch,
+                            cfg,
+                            scaler if cfg.TRAIN.MIXED_PRECISION else None,
+                        )
+                        
+                        # Break from training loop
+                        break
+                else:
+                    logger.warning(f"Early stopping metric '{metric_name}' not found in validation stats. "
+                                 f"Available metrics: {list(epoch_stats.keys())}")
     if (
         start_epoch == cfg.SOLVER.MAX_EPOCH and not cfg.MASK.ENABLE
     ):  # final checkpoint load

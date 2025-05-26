@@ -3,8 +3,8 @@ PRUNING:
   GLOBAL: True
   ISOMORPHIC: True
   PRUNING_METHOD: 'l1'
-  PRUNING_RATE: 0.05
-  PRUNING_MAX_RATE: 0.5
+  PRUNING_RATE: 0.1
+  PRUNING_MAX_RATE: 0.25
   CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/results/x3d_M_exp1/checkpoints/checkpoint_epoch_00120.pyth'
   CHECKPOINT_TYPE: pytorch
   EVALUATE_AFTER_FINE_TUNNING: True
@@ -14,7 +14,7 @@ TRAIN:
   ENABLE: False
   DATASET: meccano
   BATCH_SIZE: 16
-  EVAL_PERIOD: 10
+  EVAL_PERIOD: 5
   CHECKPOINT_PERIOD: 20
   AUTO_RESUME: True
   CHECKPOINT_TYPE: pytorch
@@ -64,6 +64,13 @@ SOLVER:
   WARMUP_EPOCHS: 35.0
   WARMUP_START_LR: 0.01
   OPTIMIZING_METHOD: sgd
+  EARLY_STOPPING:
+    ENABLE: True
+    PATIENCE: 20
+    MIN_DELTA: 0.001
+    METRIC: "top1_err"  # or "top5_err"
+    MODE: "min"  # "min" for error metrics, "max" for accuracy metrics
+    RESTORE_BEST_WEIGHTS: True
 
 MODEL:
   NUM_CLASSES: 61

@@ -56,13 +56,7 @@ def setup_cfg(args):
     # Create output folder
     if not os.path.exists(cfg.OUTPUT_DIR):
         os.makedirs(cfg.OUTPUT_DIR)
-        
-    # Create checkpoints directory if it doesn't exist
-    checkpoints_dir = os.path.join(cfg.OUTPUT_DIR, "checkpoints")
-    if not os.path.exists(checkpoints_dir):
-        os.makedirs(checkpoints_dir)
-        
-        
+                
     return cfg
 
 
@@ -229,8 +223,8 @@ def finetune_model(cfg, pruned_model_path):
     cfg.TEST.ENABLE = False
 
     # Adjust learning rate for finetuning
-    cfg.SOLVER.BASE_LR = cfg.SOLVER.BASE_LR * 0.1
-    cfg.SOLVER.MAX_EPOCH = cfg.PRUNING.PRUNING_MAX_EPOCH  # Shorter training for finetuning
+#    cfg.SOLVER.BASE_LR = cfg.SOLVER.BASE_LR * 0.1
+#    cfg.SOLVER.MAX_EPOCH = cfg.PRUNING.PRUNING_MAX_EPOCH  # Shorter training for finetuning
     
     # Launch finetuning job
     #launch_job(cfg=cfg, init_method="", func=train)
@@ -262,14 +256,23 @@ def run_pipeline(args):
     
     pruning_max_rate = cfg.PRUNING.PRUNING_MAX_RATE
     output_dir = cfg.OUTPUT_DIR
-    starting_prune_rate = 0.05
+    starting_prune_rate = cfg.PRUNING.PRUNING_RATE
 
     while starting_prune_rate <= pruning_max_rate:
         cfg.PRUNING.PRUNING_RATE = starting_prune_rate
         logger.info(f"Starting pruning with rate: {starting_prune_rate}")
         
         cfg.OUTPUT_DIR = os.path.join(output_dir, f"pruning_rate_{int(starting_prune_rate*100)}") # set output dir for each pruning rate
-        logger.info(f"Output directory: {cfg.output_dir}")
+        if not os.path.exists(cfg.OUTPUT_DIR):
+            os.makedirs(cfg.OUTPUT_DIR)
+        
+        logger.info(f"Output directory: {cfg.OUTPUT_DIR}")
+
+        # Create checkpoints directory if it doesn't exist
+        checkpoints_dir = os.path.join(cfg.OUTPUT_DIR, "checkpoints")
+        if not os.path.exists(checkpoints_dir):
+            os.makedirs(checkpoints_dir)
+        
 
         logging.setup_logging(cfg.OUTPUT_DIR)
 
