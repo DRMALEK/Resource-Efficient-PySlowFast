@@ -586,12 +586,21 @@ def main():
         return 
     
     if not os.path.exists(teacher_cfg.TEST.CHECKPOINT_FILE_PATH):
+<<<<<<<< HEAD:slowfast/tools/distill_net.py
         logger.error(f"Error: Teacher checkpoint not found: {teacher_cfg.TEST.CHECKPOINT_FILE_PATH}")
         return
 
     # Print config information
     logger.info("Knowledge Distillation:")
     logger.info(f"  Teacher: {cfg.DISTILLATION.TEACHER_ARCH} from {teacher_cfg.TEST.CHECKPOINT_FILE_PATH}")
+========
+        print(f"Error: Teacher checkpoint not found: {teacher_cfg.TEST.CHECKPOINT_FILE_PATH}")
+        return
+
+    # Print config information
+    print("Knowledge Distillation:")
+    print(f"  Teacher: {cfg.DISTILLATION.TEACHER_ARCH} from {teacher_cfg.TEST.CHECKPOINT_FILE_PATH}")
+>>>>>>>> main:slowfast/tools/distillation/distill_net.py
     if cfg.DISTILLATION.TEACHER_CFG_FILE:
         logger.info(f"  Teacher Config: {cfg.DISTILLATION.TEACHER_CFG_FILE}")
     logger.info(f"  Student: {cfg.DISTILLATION.STUDENT_ARCH} (X3D-M)")

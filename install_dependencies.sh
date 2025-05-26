@@ -31,7 +31,7 @@ fi
 pip install -r requirements.txt
 
 # (Work directroy relative)
-export PYTHONPATH=/workspace/Code/slowfast/slowfast:$PYTHONPATH
+export PYTHONPATH=/workspace/Code/slowfast:$PYTHONPATH
 
 # Setup local branches
 # First, fetch all remote branches

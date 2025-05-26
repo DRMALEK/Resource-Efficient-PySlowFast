@@ -199,7 +199,13 @@ def test(cfg):
             else:
                 model.init_knn_labels(train_loader)
 
-        cu.load_test_checkpoint(cfg, model)
+        if cfg.PRUNING.ENABLE:
+            model = cu.load_test_checkpoint(cfg, model, prunned=True)
+        
+        else:
+            # Load the checkpoint.
+            cu.load_test_checkpoint(cfg, model)
+
 
         # Create video testing loaders.
         test_loader = loader.construct_loader(cfg, "test")
