@@ -542,46 +542,94 @@ def train(cfg):
 
     # Load a checkpoint to resume training if applicable.
     if cfg.TRAIN.AUTO_RESUME and cu.has_checkpoint(cfg.OUTPUT_DIR):
+        
         logger.info("Load from last checkpoint.")
+        
         last_checkpoint = cu.get_last_checkpoint(cfg.OUTPUT_DIR, task=cfg.TASK)
+        
         if last_checkpoint is not None:
-            checkpoint_epoch = cu.load_checkpoint(
-                last_checkpoint,
-                model,
-                cfg.NUM_GPUS > 1,
-                optimizer,
-                scaler if cfg.TRAIN.MIXED_PRECISION else None,
-            )
-            start_epoch = checkpoint_epoch + 1
+            if cfg.PRUNING.ENABLE:
+                checkpoint_epoch, model  = cu.load_checkpoint(
+                    last_checkpoint,
+                    model,
+                    cfg.NUM_GPUS > 1,
+                    optimizer,
+                    scaler if cfg.TRAIN.MIXED_PRECISION else None,
+                    pruned=True
+                )
+                start_epoch = checkpoint_epoch + 1
+
+            else:
+                checkpoint_epoch = cu.load_checkpoint(
+                    last_checkpoint,
+                    model,
+                    cfg.NUM_GPUS > 1,
+                    optimizer,
+                    scaler if cfg.TRAIN.MIXED_PRECISION else None,
+                )
+                start_epoch = checkpoint_epoch + 1
+        
         elif "ssl_eval" in cfg.TASK:
             last_checkpoint = cu.get_last_checkpoint(cfg.OUTPUT_DIR, task="ssl")
-            checkpoint_epoch = cu.load_checkpoint(
-                last_checkpoint,
+            
+            if cfg.PRUNING.ENABLE:
+                checkpoint_epoch, model  = cu.load_checkpoint(
+                    last_checkpoint,
+                    model,
+                    cfg.NUM_GPUS > 1,
+                    optimizer,
+                    scaler if cfg.TRAIN.MIXED_PRECISION else None,
+                    pruned=True
+                )
+                start_epoch = checkpoint_epoch + 1
+            
+            else:
+                checkpoint_epoch = cu.load_checkpoint(
+                    last_checkpoint,
+                    model,
+                    cfg.NUM_GPUS > 1,
+                    optimizer,
+                    scaler if cfg.TRAIN.MIXED_PRECISION else None,
+                    epoch_reset=True,
+                    clear_name_pattern=cfg.TRAIN.CHECKPOINT_CLEAR_NAME_PATTERN,
+                )
+                start_epoch = checkpoint_epoch + 1
+        else:
+            start_epoch = 0
+    
+    elif cfg.TRAIN.CHECKPOINT_FILE_PATH != "":
+        logger.info("Load from given checkpoint file.")
+        
+        if cfg.PRUNING.ENABLE:
+            checkpoint_epoch, model = cu.load_checkpoint(
+                cfg.TRAIN.CHECKPOINT_FILE_PATH,
                 model,
                 cfg.NUM_GPUS > 1,
                 optimizer,
                 scaler if cfg.TRAIN.MIXED_PRECISION else None,
-                epoch_reset=True,
+                inflation=cfg.TRAIN.CHECKPOINT_INFLATE,
+                convert_from_caffe2=cfg.TRAIN.CHECKPOINT_TYPE == "caffe2",
+                epoch_reset=cfg.TRAIN.CHECKPOINT_EPOCH_RESET,
                 clear_name_pattern=cfg.TRAIN.CHECKPOINT_CLEAR_NAME_PATTERN,
+                image_init=cfg.TRAIN.CHECKPOINT_IN_INIT,
+                pruned=True
             )
             start_epoch = checkpoint_epoch + 1
+        
         else:
-            start_epoch = 0
-    elif cfg.TRAIN.CHECKPOINT_FILE_PATH != "":
-        logger.info("Load from given checkpoint file.")
-        checkpoint_epoch = cu.load_checkpoint(
-            cfg.TRAIN.CHECKPOINT_FILE_PATH,
-            model,
-            cfg.NUM_GPUS > 1,
-            optimizer,
-            scaler if cfg.TRAIN.MIXED_PRECISION else None,
-            inflation=cfg.TRAIN.CHECKPOINT_INFLATE,
-            convert_from_caffe2=cfg.TRAIN.CHECKPOINT_TYPE == "caffe2",
-            epoch_reset=cfg.TRAIN.CHECKPOINT_EPOCH_RESET,
-            clear_name_pattern=cfg.TRAIN.CHECKPOINT_CLEAR_NAME_PATTERN,
-            image_init=cfg.TRAIN.CHECKPOINT_IN_INIT,
-        )
-        start_epoch = checkpoint_epoch + 1
+            checkpoint_epoch = cu.load_checkpoint(
+                cfg.TRAIN.CHECKPOINT_FILE_PATH,
+                model,
+                cfg.NUM_GPUS > 1,
+                optimizer,
+                scaler if cfg.TRAIN.MIXED_PRECISION else None,
+                inflation=cfg.TRAIN.CHECKPOINT_INFLATE,
+                convert_from_caffe2=cfg.TRAIN.CHECKPOINT_TYPE == "caffe2",
+                epoch_reset=cfg.TRAIN.CHECKPOINT_EPOCH_RESET,
+                clear_name_pattern=cfg.TRAIN.CHECKPOINT_CLEAR_NAME_PATTERN,
+                image_init=cfg.TRAIN.CHECKPOINT_IN_INIT,
+            )
+            start_epoch = checkpoint_epoch + 1
     else:
         start_epoch = 0
 
@@ -662,7 +710,11 @@ def train(cfg):
                 else:
                     last_checkpoint = cfg.TRAIN.CHECKPOINT_FILE_PATH
                 logger.info("Load from {}".format(last_checkpoint))
-                cu.load_checkpoint(last_checkpoint, model, cfg.NUM_GPUS > 1, optimizer)
+
+                if cfg.PRUNING.ENABLE:
+                    pass # TODO: implement pruning for multigrid
+                else:    
+                    cu.load_checkpoint(last_checkpoint, model, cfg.NUM_GPUS > 1, optimizer)
 
         # Shuffle the dataset.
         loader.shuffle_dataset(train_loader, cur_epoch)
@@ -727,14 +779,28 @@ def train(cfg):
 
         # Save a checkpoint.
         if is_checkp_epoch:
-            cu.save_checkpoint(
-                cfg.OUTPUT_DIR,
-                model,
-                optimizer,
-                cur_epoch,
-                cfg,
-                scaler if cfg.TRAIN.MIXED_PRECISION else None,
-            )
+            
+            if cfg.PRUNING.ENABLE:
+                cu.save_checkpoint(
+                    cfg.OUTPUT_DIR,
+                    model,
+                    optimizer,
+                    cur_epoch,
+                    cfg,
+                    scaler if cfg.TRAIN.MIXED_PRECISION else None,
+                    pruned=True
+                )
+            
+            else:
+                cu.save_checkpoint(
+                    cfg.OUTPUT_DIR,
+                    model,
+                    optimizer,
+                    cur_epoch,
+                    cfg,
+                    scaler if cfg.TRAIN.MIXED_PRECISION else None,
+                )
+        
         # Evaluate the model on validation set.
         if is_eval_epoch:
             eval_epoch(
