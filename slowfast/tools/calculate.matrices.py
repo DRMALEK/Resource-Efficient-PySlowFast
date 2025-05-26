@@ -27,7 +27,7 @@ def parse_args():
         "--cfg",
         dest="cfg_file",
         help="Path to the config file",
-        default="/home/milkyway/Desktop/Student Thesis/results/x3d_M_exp1/X3D_M.yaml",
+        default="/workspace/Code/slowfast/configs/meccano/SLOWFAST_8x8_R50.yaml",
         type=str,
     )
  
@@ -101,7 +101,7 @@ def main():
 
     # Load checkpoint
     print("Loading the checkpoint...")
-    cu.load_test_checkpoint(cfg, model, quantized=True)
+    cu.load_test_checkpoint(cfg, model, quantized=False)
     
 
     model.eval()
