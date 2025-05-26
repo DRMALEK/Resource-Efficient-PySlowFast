@@ -180,3 +180,4 @@ venv/
 pytorchvideo/
 venv2/
 baseline/
+detectron2_repo/

@@ -53,6 +53,7 @@ TEST:
   ENABLE: True
   DATASET: meccano
   BATCH_SIZE: 96
+  CHECKPOINT_FILE_PATH: '/workspace/baseline/slowfast/SLOWFAST_8x8_R50_MECCANO.yaml'
 DATA_LOADER:
   NUM_WORKERS: 8
   PIN_MEMORY: True

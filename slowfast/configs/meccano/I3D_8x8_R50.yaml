@@ -1,14 +1,14 @@
 TRAIN:
   ENABLE: False
   DATASET: meccano
-  BATCH_SIZE: 8
+  BATCH_SIZE: 12
   EVAL_PERIOD: 10
   CHECKPOINT_PERIOD: 1
   AUTO_RESUME: True
-  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/i3d_8x8_r50_exp1/checkpoints/checkpoint_epoch_00080.pyth'
+  CHECKPOINT_FILE_PATH: ''
   CHECKPOINT_TYPE: pytorch
 DATA:
-  PATH_TO_DATA_DIR: /home/milkyway/Desktop/Student Thesis/Datasets/RGB_frames/
+  PATH_TO_DATA_DIR: '/home/milkyway/Desktop/Student Thesis/Datasets/RGB_frames/'
   NUM_FRAMES: 32
   SAMPLING_RATE: 2
   TRAIN_JITTER_SCALES: [256, 320]
@@ -30,9 +30,8 @@ NONLOCAL:
 BN:
   USE_PRECISE_STATS: True
   NUM_BATCHES_PRECISE: 200
-  #MOMENTUM: 0.1
+# MOMENTUM: 0.1
   WEIGHT_DECAY: 0.0
-  NORM_TYPE: batchnorm
 SOLVER:
   BASE_LR: 0.1
   LR_POLICY: cosine
@@ -52,12 +51,11 @@ TEST:
   ENABLE: True
   DATASET: meccano
   BATCH_SIZE: 32
+  CHECKPOINT_FILE_PATH: '/workspace/baseline/i3d/I3D_8x8_R50_MECCANO.pyth'
 DATA_LOADER:
   NUM_WORKERS: 8
   PIN_MEMORY: True
 NUM_GPUS: 1
 NUM_SHARDS: 1
 RNG_SEED: 0
-OUTPUT_DIR: './i3d_8x8_r50_exp1'
-DETECTION:
-  ENABLE: False
+OUTPUT_DIR: '/home/milkyway/Desktop/Student Thesis/Slowfast/baseline'
