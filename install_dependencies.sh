@@ -32,3 +32,15 @@ pip install -r requirements.txt
 
 # (Work directroy relative)
 export PYTHONPATH=/workspace/Code/slowfast/slowfast:$PYTHONPATH
+
+# Setup local branches
+# First, fetch all remote branches
+#git fetch --all
+
+# List all remote branches to see what's available
+#git branch -r
+
+# Create local tracking branches for each remote branch
+#git branch -a | grep remotes | grep -v HEAD | grep -v master | grep -v main | while read branch; do
+#    git branch --track "${branch#remotes/origin/}" "$branch"
+#done
