@@ -66,7 +66,7 @@ SOLVER:
   OPTIMIZING_METHOD: sgd
   EARLY_STOPPING:
     ENABLE: True
-    PATIENCE: 20
+    PATIENCE: 10
     MIN_DELTA: 0.001
     METRIC: "top1_err"  # or "top5_err"
     MODE: "min"  # "min" for error metrics, "max" for accuracy metrics
