@@ -3,7 +3,7 @@ PRUNING:
   GLOBAL: True
   ISOMORPHIC: True
   PRUNING_METHOD: 'l1'
-  PRUNING_RATE: 0.1
+  PRUNING_RATE: 0.25
   PRUNING_MAX_RATE: 0.25
   CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/results/x3d_M_exp1/checkpoints/checkpoint_epoch_00120.pyth'
   CHECKPOINT_TYPE: pytorch

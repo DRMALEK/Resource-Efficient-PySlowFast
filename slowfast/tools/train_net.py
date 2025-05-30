@@ -853,6 +853,7 @@ def train(cfg):
                             cur_epoch,
                             cfg,
                             scaler if cfg.TRAIN.MIXED_PRECISION else None,
+                            pruned = cfg.PRUNING.ENABLE
                         )
                         
                         # Break from training loop
