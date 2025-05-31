@@ -902,8 +902,6 @@ _C.SOLVER.EARLY_STOPPING.METRIC = "top1_err"
 # Mode: 'min' for metrics that should decrease (errors), 'max' for metrics that should increase (accuracy)
 _C.SOLVER.EARLY_STOPPING.MODE = "min"
 
-# Whether to restore model weights from the epoch with the best value of the monitored metric
-_C.SOLVER.EARLY_STOPPING.RESTORE_BEST_WEIGHTS = False
 
 # ---------------------------------------------------------------------------- #
 # Misc options

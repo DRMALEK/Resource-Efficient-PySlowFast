@@ -18,15 +18,12 @@ class EarlyStopping:
         mode (str): One of 'min' or 'max'. In 'min' mode, training will stop when the
                    metric has stopped decreasing; in 'max' mode it will stop when the
                    metric has stopped increasing.
-        restore_best_weights (bool): Whether to restore model weights from the epoch
-                                   with the best value of the monitored metric.
     """
     
-    def __init__(self, patience=10, min_delta=0.001, mode="min", restore_best_weights=False):
+    def __init__(self, patience=10, min_delta=0.001, mode="min"):
         self.patience = patience
         self.min_delta = min_delta
         self.mode = mode
-        self.restore_best_weights = restore_best_weights
         
         self.best_score = None
         self.counter = 0

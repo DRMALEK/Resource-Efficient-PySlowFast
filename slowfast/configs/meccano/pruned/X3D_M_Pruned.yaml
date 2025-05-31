@@ -30,7 +30,7 @@ TEST:
   ENABLE: True
   DATASET: meccano
   BATCH_SIZE: 128
-  CHECKPOINT_FILE_PATH: '' # 76.21% top1 30-view accuracy to download from the model zoo (optional).
+  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/X3D_M_pruned_exp5/pruning_rate_25/checkpoints/checkpoint_epoch_00060.pyth' # 76.21% top1 30-view accuracy to download from the model zoo (optional).
   # NUM_SPATIAL_CROPS: 1
   NUM_SPATIAL_CROPS: 3
 
@@ -66,11 +66,10 @@ SOLVER:
   OPTIMIZING_METHOD: sgd
   EARLY_STOPPING:
     ENABLE: True
-    PATIENCE: 10
+    PATIENCE: 3 # since we do evaluation every 5 epochs, this means we will wait for 15 epochs before stopping
     MIN_DELTA: 0.001
     METRIC: "top1_err"  # or "top5_err"
     MODE: "min"  # "min" for error metrics, "max" for accuracy metrics
-    RESTORE_BEST_WEIGHTS: True
 
 MODEL:
   NUM_CLASSES: 61

@@ -122,12 +122,23 @@ def prune_model(cfg, args):
     # Configure importance criterion based on method
     if cfg.PRUNING.PRUNING_METHOD == "l1":
         importance = tp.importance.MagnitudeImportance(p=1)
+    
     elif cfg.PRUNING.PRUNING_METHOD == "l2":
         importance = tp.importance.MagnitudeImportance(p=2)
+    
     elif cfg.PRUNING.PRUNING_METHOD == "fpgm":
         importance = tp.importance.GroupNormImportance()
+    
     elif cfg.PRUNING.PRUNING_METHOD == "random":
         importance = tp.importance.RandomImportance()
+    
+    elif cfg.pRUNING.PRUNING_METHOD == "taylor":
+        # Taylor importance requires gradients
+        importance = tp.importance.TaylorImportance()
+
+    else:
+        raise ValueError(f"Unsupported pruning method: {cfg.PRUNING.PRUNING_METHOD}")
+
     
     # Ignore specific layers (like last linear layer)
     ignored_layers = []
@@ -180,6 +191,14 @@ def prune_model(cfg, args):
     logger.info("Before pruning:")
     logger.info(f"Parameters: {ori_size}")
     
+    if cfg.PRUNING.METHOD == "taylor":
+        # Taylor importance requires gradients
+        model.train()  # Set model to training mode to compute gradients
+        model.zero_grad()  # Clear any existing gradients
+        loss = model(example_inputs).sum()  # Dummy loss for gradient computation
+        loss.backward()  # Compute gradients
+        model.eval()
+
     # Perform pruning
     pruner.step()
     

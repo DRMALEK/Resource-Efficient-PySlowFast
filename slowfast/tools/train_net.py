@@ -668,7 +668,6 @@ def train(cfg):
             patience=cfg.SOLVER.EARLY_STOPPING.PATIENCE,
             min_delta=cfg.SOLVER.EARLY_STOPPING.MIN_DELTA,
             mode=cfg.SOLVER.EARLY_STOPPING.MODE,
-            restore_best_weights=cfg.SOLVER.EARLY_STOPPING.RESTORE_BEST_WEIGHTS
         )
         logger.info(f"Early stopping enabled with metric: {cfg.SOLVER.EARLY_STOPPING.METRIC}")
 
@@ -841,10 +840,6 @@ def train(cfg):
                         logger.info(f"Early stopping triggered at epoch {cur_epoch}")
                         logger.info(f"Best {metric_name}: {early_stopping.get_best_score():.4f} "
                                    f"at epoch {early_stopping.get_best_epoch()}")
-                        
-                        # Save final checkpoint with early stopping info
-                        if cfg.SOLVER.EARLY_STOPPING.RESTORE_BEST_WEIGHTS:
-                            logger.info("Saving model with best weights from early stopping")
                         
                         cu.save_checkpoint(
                             cfg.OUTPUT_DIR,
