@@ -457,25 +457,25 @@ def distill_knowledge(cfg , teacher_cfg):
         optim.set_lr(student_optimizer, lr)
         
         # Compute precise BN stats
-        if cfg.BN.USE_PRECISE_STATS:
-            bn_modules = [
-                m for m in student_model.modules() if isinstance(m, (
-                    torch.nn.BatchNorm1d, 
-                    torch.nn.BatchNorm2d, 
-                    torch.nn.BatchNorm3d
-                ))
-            ]
-            if len(bn_modules) > 0:
-                calculate_and_update_precise_bn(
-                    train_loader, 
-                    student_model, 
-                    min(cfg.BN.NUM_BATCHES_PRECISE, len(train_loader)),
-                    cfg.NUM_GPUS > 0,
-                )
+#        if cfg.BN.USE_PRECISE_STATS:
+#            bn_modules = [
+#                m for m in student_model.modules() if isinstance(m, (
+#                    torch.nn.BatchNorm1d, 
+#                    torch.nn.BatchNorm2d, 
+#                    torch.nn.BatchNorm3d
+#                ))
+#            ]
+#            if len(bn_modules) > 0:
+#                calculate_and_update_precise_bn(
+#                    train_loader, 
+#                    student_model, 
+#                    min(cfg.BN.NUM_BATCHES_PRECISE, len(train_loader)),
+#                    cfg.NUM_GPUS > 0,
+#                )
             
         # Save checkpoint
         if cu.is_checkpoint_epoch(
-            cur_epoch, cfg.TRAIN.CHECKPOINT_PERIOD
+            cfg, cur_epoch, None
         ):
             checkpoint_file_path = cu.save_checkpoint(
                 cfg.OUTPUT_DIR, 
@@ -486,28 +486,40 @@ def distill_knowledge(cfg , teacher_cfg):
             )
             
         # Evaluate the model on validation set
-        if misc.is_eval_epoch(cfg, cur_epoch):
-            eval_epoch(
+        if misc.is_eval_epoch(cfg, cur_epoch, None):
+             eval_epoch(
                 student_model,
                 val_loader,
                 val_meter,
                 cur_epoch,
                 cfg,
-                writer,
-            )
-            
+                writer)
+    
     # Final checkpoint
     if cu.is_checkpoint_epoch(
-        cfg.SOLVER.MAX_EPOCH - 1, cfg.TRAIN.CHECKPOINT_PERIOD
+        cfg, cfg.SOLVER.MAX_EPOCH, None
     ):
         checkpoint_file_path = cu.save_checkpoint(
             cfg.OUTPUT_DIR, 
             student_model,
             student_optimizer,
-            cfg.SOLVER.MAX_EPOCH - 1, 
+            cfg.SOLVER.MAX_EPOCH, 
             cfg,
         )
+
+
+    if cur_epoch == cfg.SOLVER.MAX_EPOCH:
+        logger.info("Final evaluation on validation set")
+        eval_epoch(
+                student_model,
+                val_loader,
+                val_meter,
+                cur_epoch,
+                cfg,
+                writer
+            )
         
+    
     if writer is not None:
         writer.close()
 
