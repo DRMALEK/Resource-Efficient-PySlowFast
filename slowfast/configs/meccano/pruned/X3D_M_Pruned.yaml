@@ -2,7 +2,7 @@ PRUNING:
   ENABLE: True
   GLOBAL: True
   ISOMORPHIC: True
-  PRUNING_METHOD: 'l1'
+  PRUNING_METHOD: 'taylor'
   PRUNING_RATE: 0.25
   PRUNING_MAX_RATE: 0.25
   CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/results/x3d_M_exp1/checkpoints/checkpoint_epoch_00120.pyth'
@@ -11,7 +11,7 @@ PRUNING:
 
 TRAIN:
   # ENABLE: False # default True
-  ENABLE: False
+  ENABLE: True
   DATASET: meccano
   BATCH_SIZE: 16
   EVAL_PERIOD: 5
@@ -27,10 +27,10 @@ X3D:
   DIM_C1: 12
 
 TEST:
-  ENABLE: True
+  ENABLE: False
   DATASET: meccano
   BATCH_SIZE: 128
-  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/X3D_M_pruned_exp5/pruning_rate_25/checkpoints/checkpoint_epoch_00060.pyth' # 76.21% top1 30-view accuracy to download from the model zoo (optional).
+  CHECKPOINT_FILE_PATH: '' # 76.21% top1 30-view accuracy to download from the model zoo (optional).
   # NUM_SPATIAL_CROPS: 1
   NUM_SPATIAL_CROPS: 3
 
@@ -84,4 +84,4 @@ DATA_LOADER:
 
 NUM_GPUS: 1
 RNG_SEED: 0
-OUTPUT_DIR: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/X3D_M_pruned_exp5'
+OUTPUT_DIR: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/X3D_M_pruned_exp6'

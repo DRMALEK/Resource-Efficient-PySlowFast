@@ -132,7 +132,7 @@ def prune_model(cfg, args):
     elif cfg.PRUNING.PRUNING_METHOD == "random":
         importance = tp.importance.RandomImportance()
     
-    elif cfg.pRUNING.PRUNING_METHOD == "taylor":
+    elif cfg.PRUNING.PRUNING_METHOD == "taylor":
         # Taylor importance requires gradients
         importance = tp.importance.TaylorImportance()
 
@@ -191,7 +191,7 @@ def prune_model(cfg, args):
     logger.info("Before pruning:")
     logger.info(f"Parameters: {ori_size}")
     
-    if cfg.PRUNING.METHOD == "taylor":
+    if cfg.PRUNING.PRUNING_METHOD == "taylor":
         # Taylor importance requires gradients
         model.train()  # Set model to training mode to compute gradients
         model.zero_grad()  # Clear any existing gradients
