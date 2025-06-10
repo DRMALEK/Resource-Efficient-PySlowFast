@@ -606,6 +606,7 @@ def main():
     logger.info(f"  Teacher: {cfg.DISTILLATION.TEACHER_ARCH} from {teacher_cfg.TEST.CHECKPOINT_FILE_PATH}")
     if cfg.DISTILLATION.TEACHER_CFG_FILE:
         logger.info(f"  Teacher Config: {cfg.DISTILLATION.TEACHER_CFG_FILE}")
+    
     logger.info(f"  Student: {cfg.DISTILLATION.STUDENT_ARCH} (X3D-M)")
     logger.info(f"  Temperature: {cfg.DISTILLATION.TEMPERATURE}")
     logger.info(f"  Alpha: {cfg.DISTILLATION.ALPHA}")
