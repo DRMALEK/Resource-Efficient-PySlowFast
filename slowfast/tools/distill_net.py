@@ -10,14 +10,11 @@ to a smaller student model (X3D-M).
 import numpy as np
 import pprint
 import torch
-import tqdm
 import os
 import sys
 import argparse
-import itertools
 import copy
-from fvcore.common.config import CfgNode
-from fvcore.nn.precise_bn import get_bn_modules, update_bn_stats
+from fvcore.nn.precise_bn import update_bn_stats
 
 
 # Add the path to the slowfast module or via export 'export PYTHONPATH=/path/to/SlowFast:$PYTHONPATH'
@@ -35,8 +32,7 @@ import slowfast.utils.metrics as metrics
 import slowfast.utils.misc as misc
 from slowfast.datasets import loader
 from slowfast.models import build_model
-from slowfast.utils.meters import AVAMeter, EpochTimer, TrainMeter, ValMeter
-from slowfast.utils.multigrid import MultigridSchedule
+from slowfast.utils.meters import TrainMeter, ValMeter
 from slowfast.config.defaults import get_cfg
 import slowfast.visualization.tensorboard_vis as tb
 
@@ -74,13 +70,11 @@ def train_epoch(
     student_model.train()
     train_meter.iter_tic()
     data_size = len(loader)
-
-    # Explicitly declare reduction to mean for standard classification loss
-    cls_loss_fun = losses.get_loss_func(cfg.MODEL.LOSS_FUNC)(reduction="mean")
     
     # Create scaler for mixed precision training if enabled
     scaler = torch.cuda.amp.GradScaler(enabled=cfg.TRAIN.MIXED_PRECISION)
 
+    # prepare the inputs and labels
     for cur_iter, (inputs, labels, index, time, meta) in enumerate(loader):
         # Transfer the data to the current GPU device
         if cfg.NUM_GPUS:
@@ -116,11 +110,11 @@ def train_epoch(
         train_meter.data_toc()
         
         with torch.cuda.amp.autocast(enabled=cfg.TRAIN.MIXED_PRECISION):
+            
             # Zero gradients
             student_optimizer.zero_grad()
             
             # Get teacher predictions (no grad)
-
             orginal_inputs = copy.deepcopy(inputs)
 
             with torch.no_grad():

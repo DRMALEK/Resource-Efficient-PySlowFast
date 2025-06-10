@@ -108,6 +108,8 @@ class ResNetRoIHead(nn.Module):
             self.act = nn.Softmax(dim=1)
         elif act_func == "sigmoid":
             self.act = nn.Sigmoid()
+        elif self.act_func == "same":             # for knowledge distillation 
+            self.act = nn.Identity()
         else:
             raise NotImplementedError(
                 "{} is not supported as an activation" "function.".format(act_func)
@@ -279,8 +281,8 @@ class ResNetBasicHead(nn.Module):
             self.act = nn.Softmax(dim=4)
         elif act_func == "sigmoid":
             self.act = nn.Sigmoid()
-        elif act_func == "none":
-            self.act = None
+        elif self.act_func == "same":             # for knowledge distillation 
+            self.act = nn.Identity()
         else:
             raise NotImplementedError(
                 "{} is not supported as an activation" "function.".format(act_func)
@@ -454,6 +456,8 @@ class X3DHead(nn.Module):
             self.act = nn.Softmax(dim=4)
         elif self.act_func == "sigmoid":
             self.act = nn.Sigmoid()
+        elif self.act_func == "same":             # for knowledge distillation 
+            self.act = nn.Identity()
         else:
             raise NotImplementedError(
                 "{} is not supported as an activation" "function.".format(self.act_func)
@@ -474,7 +478,7 @@ class X3DHead(nn.Module):
         x = self.lin_5_relu(x)
 
         # (N, C, T, H, W) -> (N, T, H, W, C).
-        x = x.permute((0, 2, 3, 4, 1))
+        x = x.permute((0, 2, 3, 4, 1))  
         # Perform dropout.
         if hasattr(self, "dropout"):
             x = self.dropout(x)
@@ -538,8 +542,8 @@ class TransformerBasicHead(nn.Module):
             self.act = nn.Softmax(dim=1)
         elif act_func == "sigmoid":
             self.act = nn.Sigmoid()
-        elif act_func == "none":
-            self.act = None
+        elif self.act_func == "same":             # for knowledge distillation 
+            self.act = nn.Identity()
         else:
             raise NotImplementedError(
                 "{} is not supported as an activation" "function.".format(act_func)
