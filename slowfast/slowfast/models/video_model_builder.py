@@ -799,10 +799,7 @@ class X3D(nn.Module):
             )
 
     def forward(self, x, bboxes=None):
-<<<<<<< HEAD
-=======
         #print("x shape: ", x.shape)
->>>>>>> main
         x = x[:]  # avoid pass by reference
         for module in self.children():
             x = module(x)
