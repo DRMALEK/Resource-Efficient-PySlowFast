@@ -706,6 +706,8 @@ class ValMeter:
         self.all_preds = []
         self.all_labels = []
         self.output_dir = cfg.OUTPUT_DIR
+        # Store current epoch stats for early stopping
+        self.current_epoch_stats = {}
 
     def reset(self):
         """
@@ -817,8 +819,24 @@ class ValMeter:
             stats["top5_err"] = top5_err
             stats["min_top1_err"] = self.min_top1_err
             stats["min_top5_err"] = self.min_top5_err
+            
+            # Store current epoch stats for early stopping
+            self.current_epoch_stats = {
+                "top1_err": top1_err,
+                "top5_err": top5_err,
+                "min_top1_err": self.min_top1_err,
+                "min_top5_err": self.min_top5_err,
+            }
 
         logging.log_json_stats(stats, self.output_dir)
+
+    def get_epoch_stats(self):
+        """
+        Get the current epoch stats for early stopping.
+        Returns:
+            dict: Dictionary containing current epoch metrics.
+        """
+        return self.current_epoch_stats
 
 
 def get_map(preds, labels):
