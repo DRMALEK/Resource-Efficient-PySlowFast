@@ -883,6 +883,26 @@ _C.SOLVER.LAYER_DECAY = 1.0
 
 # Adam's beta
 _C.SOLVER.BETAS = (0.9, 0.999)
+
+# Early stopping options
+_C.SOLVER.EARLY_STOPPING = CfgNode()
+
+# Enable early stopping
+_C.SOLVER.EARLY_STOPPING.ENABLE = False
+
+# Number of epochs to wait for improvement before stopping
+_C.SOLVER.EARLY_STOPPING.PATIENCE = 10
+
+# Minimum change in the monitored metric to qualify as improvement
+_C.SOLVER.EARLY_STOPPING.MIN_DELTA = 0.001
+
+# Metric to monitor for early stopping ('top1_err', 'top5_err', 'loss')
+_C.SOLVER.EARLY_STOPPING.METRIC = "top1_err"
+
+# Mode: 'min' for metrics that should decrease (errors), 'max' for metrics that should increase (accuracy)
+_C.SOLVER.EARLY_STOPPING.MODE = "min"
+
+
 # ---------------------------------------------------------------------------- #
 # Misc options
 # ---------------------------------------------------------------------------- #
@@ -1316,7 +1336,9 @@ _C.PRUNING.ISOMORPHIC = False
 
 _C.PRUNING.PRUNING_METHOD = 'l1'
 
-_C.PRUNING.PRUNING_RATE = 0.25
+_C.PRUNING.PRUNING_RATE = 0.05
+
+_C.PRUNING.PRUNING_MAX_RATE = 0.25
 
 _C.PRUNING.PRUNING_MAX_EPOCH = 1
 
