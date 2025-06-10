@@ -35,6 +35,7 @@ from slowfast.models import build_model
 from slowfast.utils.meters import TrainMeter, ValMeter
 from slowfast.config.defaults import get_cfg
 import slowfast.visualization.tensorboard_vis as tb
+from slowfast.utils.early_stopping import EarlyStopping
 
 logger = logging.get_logger(__name__)
 
@@ -409,6 +410,17 @@ def distill_knowledge(cfg , teacher_cfg):
     # Create optimizer for student model
     student_optimizer = optim.construct_optimizer(student_model, cfg)
     
+    # Initialize early stopping if enabled
+    early_stopping = None
+    if cfg.SOLVER.EARLY_STOPPING.ENABLE:
+        early_stopping = EarlyStopping(
+            patience=cfg.SOLVER.EARLY_STOPPING.PATIENCE,
+            min_delta=cfg.SOLVER.EARLY_STOPPING.MIN_DELTA,
+            mode=cfg.SOLVER.EARLY_STOPPING.MODE,
+        )
+        logger.info(f"Early stopping enabled with metric: {cfg.SOLVER.EARLY_STOPPING.METRIC}")
+
+
 
     # Main distillation loop
     start_epoch = 0
@@ -449,28 +461,9 @@ def distill_knowledge(cfg , teacher_cfg):
         # Update learning rate
         lr = optim.get_epoch_lr(cur_epoch + 1, cfg)
         optim.set_lr(student_optimizer, lr)
-        
-        # Compute precise BN stats
-#        if cfg.BN.USE_PRECISE_STATS:
-#            bn_modules = [
-#                m for m in student_model.modules() if isinstance(m, (
-#                    torch.nn.BatchNorm1d, 
-#                    torch.nn.BatchNorm2d, 
-#                    torch.nn.BatchNorm3d
-#                ))
-#            ]
-#            if len(bn_modules) > 0:
-#                calculate_and_update_precise_bn(
-#                    train_loader, 
-#                    student_model, 
-#                    min(cfg.BN.NUM_BATCHES_PRECISE, len(train_loader)),
-#                    cfg.NUM_GPUS > 0,
-#                )
-            
+                    
         # Save checkpoint
-        if cu.is_checkpoint_epoch(
-            cfg, cur_epoch, None
-        ):
+        if cu.is_checkpoint_epoch(cfg, cur_epoch, None):
             checkpoint_file_path = cu.save_checkpoint(
                 cfg.OUTPUT_DIR, 
                 student_model,
@@ -481,13 +474,46 @@ def distill_knowledge(cfg , teacher_cfg):
             
         # Evaluate the model on validation set
         if misc.is_eval_epoch(cfg, cur_epoch, None):
-             eval_epoch(
+            eval_epoch(
                 student_model,
                 val_loader,
                 val_meter,
                 cur_epoch,
                 cfg,
                 writer)
+             
+            # Check early stopping condition
+            if early_stopping is not None:
+                # Get the current validation metric value
+                epoch_stats = val_meter.get_epoch_stats()
+                metric_name = cfg.SOLVER.EARLY_STOPPING.METRIC
+                
+                if metric_name in epoch_stats:
+                    current_metric = epoch_stats[metric_name]
+                    
+                    # Check if early stopping should be triggered
+                    should_stop = early_stopping(current_metric, cur_epoch)
+                    
+                    if should_stop:
+                        logger.info(f"Early stopping triggered at epoch {cur_epoch}")
+                        logger.info(f"Best {metric_name}: {early_stopping.get_best_score():.4f} "
+                                   f"at epoch {early_stopping.get_best_epoch()}")
+                        
+                        cu.save_checkpoint(
+                            cfg.OUTPUT_DIR,
+                            student_model,
+                            student_optimizer,
+                            cur_epoch,
+                            cfg
+                        )
+                        
+                        # Break from training loop
+                        break
+                
+                else:
+                    logger.warning(f"Early stopping metric '{metric_name}' not found in validation stats. "
+                                 f"Available metrics: {list(epoch_stats.keys())}")
+
     
     # Final checkpoint
     if cu.is_checkpoint_epoch(

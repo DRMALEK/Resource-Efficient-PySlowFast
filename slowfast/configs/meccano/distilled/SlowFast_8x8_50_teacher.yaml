@@ -41,6 +41,8 @@ MODEL:
   MODEL_NAME: SlowFast
   LOSS_FUNC: cross_entropy
   DROPOUT_RATE: 0.5
+  HEAD_ACT: "same"
+
 TEST:
   ENABLE: True
   DATASET: meccano
