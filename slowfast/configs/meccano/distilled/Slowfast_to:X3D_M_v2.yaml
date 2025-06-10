@@ -9,7 +9,7 @@ TRAIN:
 # Knowledge Distillation specific configs
 DISTILLATION:
   ENABLE: True
-  TEMPERATURE: 6.0
+  TEMPERATURE: 4
   ALPHA: 0.5  # Weight for hard loss vs soft loss
   TEACHER_ARCH: slowfast 
   STUDENT_ARCH: x3d
@@ -47,7 +47,7 @@ BN:
   WEIGHT_DECAY: 0.0
 
 SOLVER:
-  BASE_LR: 0.005  # Lower LR for distillation
+  BASE_LR: 0.1 
   LR_POLICY: cosine
   MAX_EPOCH: 120 # default is 120
   WEIGHT_DECAY: 5e-5
@@ -67,6 +67,7 @@ MODEL:
   MODEL_NAME: X3D
   LOSS_FUNC: cross_entropy
   DROPOUT_RATE: 0.5
+  HEAD_ACT: "same"
 
 DATA_LOADER:
   NUM_WORKERS: 8
@@ -74,7 +75,7 @@ DATA_LOADER:
 
 NUM_GPUS: 1  # Adjust based on available resources
 RNG_SEED: 42
-OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp3"
+OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp4"
 
 TENSORBOARD:
   ENABLE: True
