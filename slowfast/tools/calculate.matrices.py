@@ -6,6 +6,10 @@ import time
 import argparse
 import numpy as np
 from tqdm import tqdm
+import sys
+
+# Add the path to the slowfast module or via export 'export PYTHONPATH=/path/to/SlowFast/slowfast:$PYTHONPATH'
+sys.path.insert(0, '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast')
 
 import slowfast.utils.checkpoint as cu
 import slowfast.utils.distributed as du

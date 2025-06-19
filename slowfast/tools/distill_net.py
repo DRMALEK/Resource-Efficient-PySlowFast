@@ -39,7 +39,6 @@ from slowfast.utils.early_stopping import EarlyStopping
 
 logger = logging.get_logger(__name__)
 
-
 def train_epoch(
     teacher_model,
     student_model,
@@ -300,7 +299,6 @@ def eval_epoch(
         
     val_meter.reset()
 
-
 def calculate_and_update_precise_bn(loader, model, num_iters=200, use_gpu=True):
     """
     Update the stats in bn layers by calculate the precise stats.
@@ -347,7 +345,6 @@ def build_teacher_model(cfg, teacher_cfg):
         
     return model
 
-
 def build_student_model(cfg):
     """
     Build the student model (X3D-M).
@@ -368,7 +365,6 @@ def build_student_model(cfg):
         model = model.cuda()
         
     return model
-
 
 def distill_knowledge(cfg , teacher_cfg):
     """
@@ -427,8 +423,9 @@ def distill_knowledge(cfg , teacher_cfg):
     if cfg.DISTILLATION.STUDENT_CHECKPOINT:
         start_epoch = cu.load_checkpoint(
             cfg.DISTILLATION.STUDENT_CHECKPOINT, student_model, student_optimizer
-        )[0]
+        )
         
+
     # Setup tensorboard if enabled
     if cfg.TENSORBOARD.ENABLE and du.is_master_proc(
         cfg.NUM_GPUS * cfg.NUM_SHARDS
@@ -543,7 +540,6 @@ def distill_knowledge(cfg , teacher_cfg):
     if writer is not None:
         writer.close()
 
-
 def parse_args():
     """
     Parse the following arguments for the knowledge distillation binary.
@@ -558,12 +554,11 @@ def parse_args():
         "--cfg",
         dest="cfg_file",
         help="Path to the distillation config file",
-        default="/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/distilled/SlowFast_to_X3D_M.yaml",
+        default="/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/distilled/SlowFast_to_X3D_M_v3.yaml",
         type=str,
     )
     
     return parser.parse_args()
-
 
 def load_config(args):
     """
@@ -592,7 +587,6 @@ def load_config(args):
         os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
     
     return cfg, teacher_cfg
-
 
 def main():
     """
@@ -639,7 +633,6 @@ def main():
 
     # Initialize distillation process
     distill_knowledge(cfg, teacher_cfg)
-
 
 if __name__ == "__main__":
     main()

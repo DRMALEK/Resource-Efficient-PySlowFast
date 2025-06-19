@@ -108,7 +108,7 @@ class ResNetRoIHead(nn.Module):
             self.act = nn.Softmax(dim=1)
         elif act_func == "sigmoid":
             self.act = nn.Sigmoid()
-        elif self.act_func == "same":             # for knowledge distillation 
+        elif act_func == "same":             # for knowledge distillation 
             self.act = nn.Identity()
         else:
             raise NotImplementedError(
@@ -281,7 +281,7 @@ class ResNetBasicHead(nn.Module):
             self.act = nn.Softmax(dim=4)
         elif act_func == "sigmoid":
             self.act = nn.Sigmoid()
-        elif self.act_func == "same":             # for knowledge distillation 
+        elif act_func == "same":             # for knowledge distillation 
             self.act = nn.Identity()
         else:
             raise NotImplementedError(
@@ -542,7 +542,7 @@ class TransformerBasicHead(nn.Module):
             self.act = nn.Softmax(dim=1)
         elif act_func == "sigmoid":
             self.act = nn.Sigmoid()
-        elif self.act_func == "same":             # for knowledge distillation 
+        elif act_func == "same":             # for knowledge distillation 
             self.act = nn.Identity()
         else:
             raise NotImplementedError(

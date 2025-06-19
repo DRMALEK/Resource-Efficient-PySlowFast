@@ -30,7 +30,6 @@ def parse_custom_args():
     parser.add_argument("--sparsity_step", help="Sparsity increment per iteration", type=float, default=0.1)
     parser.add_argument("--target_sparsity", help="Target final sparsity", type=float, default=0.9)
     
-   
     return parser.parse_args()
 
 def setup_cfg(args):
@@ -297,7 +296,6 @@ def main():
         with open(results_path, "w") as f:
             for result in results:
                 f.write(f"Sparsity {result['sparsity']:.2f}: {result['model_path']}\n")
-
 
 if __name__ == "__main__":
     main()
