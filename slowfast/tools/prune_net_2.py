@@ -236,8 +236,8 @@ def finetune_model(cfg, pruned_model_path):
     cfg.TEST.ENABLE = False
 
     # Adjust learning rate for finetuning
-#    cfg.SOLVER.BASE_LR = cfg.SOLVER.BASE_LR * 0.1
-#    cfg.SOLVER.MAX_EPOCH = cfg.PRUNING.PRUNING_MAX_EPOCH  # Shorter training for finetuning
+    # cfg.SOLVER.BASE_LR = cfg.SOLVER.BASE_LR * 0.1
+    # cfg.SOLVER.MAX_EPOCH = cfg.PRUNING.PRUNING_MAX_EPOCH  # Shorter training for finetuning
     
     # Launch finetuning job
     #launch_job(cfg=cfg, init_method="", func=train)
