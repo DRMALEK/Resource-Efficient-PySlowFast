@@ -25,10 +25,8 @@ import slowfast.utils.logging as logging
 from test_net import test
 from train_net import train
 
-
 # Set up proper logging
 logger = logging.get_logger(__name__)
-
 
 def parse_custom_args():
     parser = argparse.ArgumentParser(description="X3D Model Pruning Pipeline with torch-pruning")
@@ -45,7 +43,6 @@ def parse_custom_args():
 
     return parser.parse_args()
 
-
 def setup_cfg(args):
     """
     Set up the configuration for model training.
@@ -58,7 +55,6 @@ def setup_cfg(args):
         os.makedirs(cfg.OUTPUT_DIR)
                 
     return cfg
-
 
 def prepare_dummy_input(cfg):
     """
@@ -85,7 +81,6 @@ def prepare_dummy_input(cfg):
             inputs = inputs.cuda(non_blocking=True)
 
     return inputs
-
 
 def prune_model(cfg, args):
     """
@@ -231,7 +226,6 @@ def prune_model(cfg, args):
     
     return pruned_model_path
 
-
 def finetune_model(cfg, pruned_model_path):
     """
     Finetune the pruned model
@@ -249,8 +243,6 @@ def finetune_model(cfg, pruned_model_path):
     #launch_job(cfg=cfg, init_method="", func=train)
     train(cfg)
 
-
-
 def evaluate_model(cfg):
     """
     Evaluate the model on validation set
@@ -265,7 +257,6 @@ def evaluate_model(cfg):
     
     logger.info(f"Model evaluation results: {results}")
     return results
-
 
 def run_pipeline(args):
     """

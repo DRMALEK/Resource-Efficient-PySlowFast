@@ -6,15 +6,23 @@ TRAIN:
   CHECKPOINT_PERIOD: 5
   AUTO_RESUME: True
 
+TEST:
+  ENABLE: True
+  DATASET: meccano
+  BATCH_SIZE: 64
+  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp8/checkpoints/checkpoint_epoch_00150.pyth'
+  # NUM_SPATIAL_CROPS: 1
+  NUM_SPATIAL_CROPS: 3
+
 # Knowledge Distillation specific configs
 DISTILLATION:
-  ENABLE: True
-  TEMPERATURE: 6.0
+  ENABLE: False
+  TEMPERATURE: 4.0
   ALPHA: 0.5  # Weight for hard loss vs soft loss
   TEACHER_ARCH: slowfast 
   STUDENT_ARCH: x3d
   TEACHER_CFG_FILE: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/distilled/SlowFast_8x8_50_teacher.yaml"    # Path to SlowFast config file
-  STUDENT_CHECKPOINT: ""  # Path to initialize student model (optional)
+  STUDENT_CHECKPOINT: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp8/checkpoints/checkpoint_epoch_00150.pyth"  # Path to initialize student model (optional)
 
 # Student model configs (X3D-M)
 X3D:
@@ -47,15 +55,15 @@ BN:
   WEIGHT_DECAY: 0.0
 
 SOLVER:
-  BASE_LR: 0.005  # Lower LR for distillation
+  BASE_LR: 0.01  # Lower LR for distillation
   LR_POLICY: cosine
-  MAX_EPOCH: 120 # default is 120
+  MAX_EPOCH: 180 # default is 120
   WEIGHT_DECAY: 5e-5
-  WARMUP_EPOCHS: 20.0
+  WARMUP_EPOCHS: 35.0
   WARMUP_START_LR: 0.001
   OPTIMIZING_METHOD: sgd
   EARLY_STOPPING:
-    ENABLE: True
+    ENABLE: False
     PATIENCE: 3 # since we do evaluation every 5 epochs, this means we will wait for 15 epochs before stopping
     MIN_DELTA: 0.001
     METRIC: "top1_err"  # or "top5_err"
@@ -67,6 +75,7 @@ MODEL:
   MODEL_NAME: X3D
   LOSS_FUNC: cross_entropy
   DROPOUT_RATE: 0.5
+  HEAD_ACT: "same"
 
 DATA_LOADER:
   NUM_WORKERS: 8
@@ -74,7 +83,7 @@ DATA_LOADER:
 
 NUM_GPUS: 1  # Adjust based on available resources
 RNG_SEED: 42
-OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp3"
+OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp8"
 
 TENSORBOARD:
   ENABLE: True

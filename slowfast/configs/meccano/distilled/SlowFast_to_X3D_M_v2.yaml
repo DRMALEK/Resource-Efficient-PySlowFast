@@ -1,16 +1,24 @@
 TRAIN:
-  ENABLE: True
+  ENABLE: False
   DATASET: meccano
   BATCH_SIZE: 12
   EVAL_PERIOD: 5
   CHECKPOINT_PERIOD: 5
   AUTO_RESUME: True
 
+TEST:
+  ENABLE: True
+  DATASET: meccano
+  BATCH_SIZE: 64
+  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp5/checkpoints/checkpoint_epoch_00040.pyth'
+  # NUM_SPATIAL_CROPS: 1
+  NUM_SPATIAL_CROPS: 3
+
 # Knowledge Distillation specific configs
 DISTILLATION:
-  ENABLE: True
-  TEMPERATURE: 4
-  ALPHA: 0.5  # Weight for hard loss vs soft loss
+  ENABLE: False
+  TEMPERATURE: 4.0
+  ALPHA: 0.9  # Weight for hard loss vs soft loss
   TEACHER_ARCH: slowfast 
   STUDENT_ARCH: x3d
   TEACHER_CFG_FILE: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/distilled/SlowFast_8x8_50_teacher.yaml"    # Path to SlowFast config file
@@ -75,7 +83,7 @@ DATA_LOADER:
 
 NUM_GPUS: 1  # Adjust based on available resources
 RNG_SEED: 42
-OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp4"
+OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp5"
 
 TENSORBOARD:
   ENABLE: True
