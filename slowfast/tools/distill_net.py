@@ -358,8 +358,11 @@ def build_student_model(cfg):
     
     # Initialize weights from scratch or load from checkpoint if provided
     if cfg.DISTILLATION.STUDENT_CHECKPOINT:
-        cu.load_checkpoint(cfg.DISTILLATION.STUDENT_CHECKPOINT, model)
-    
+        if cfg.PRUNING.ENABLE:
+            _, model = cu.load_checkpoint(cfg.DISTILLATION.STUDENT_CHECKPOINT, model, pruned=True)     # since we are distilling to a pruned model, pruned =True
+        else:
+            cu.load_checkpoint(cfg.DISTILLATION.STUDENT_CHECKPOINT, model)
+
     # Move to GPU
     if cfg.NUM_GPUS > 0:
         model = model.cuda()
@@ -421,10 +424,18 @@ def distill_knowledge(cfg , teacher_cfg):
     # Main distillation loop
     start_epoch = 0
     if cfg.DISTILLATION.STUDENT_CHECKPOINT:
-        start_epoch = cu.load_checkpoint(
-            cfg.DISTILLATION.STUDENT_CHECKPOINT, student_model, student_optimizer
-        )
         
+        if cfg.PRUNING.ENABLE:
+            start_epoch = cu.load_checkpoint(
+                cfg.DISTILLATION.STUDENT_CHECKPOINT, student_model, student_optimizer, pruned=True
+            )
+        
+        else:
+            start_epoch = cu.load_checkpoint(
+                cfg.DISTILLATION.STUDENT_CHECKPOINT, student_model, student_optimizer
+            )
+
+
 
     # Setup tensorboard if enabled
     if cfg.TENSORBOARD.ENABLE and du.is_master_proc(
@@ -437,6 +448,11 @@ def distill_knowledge(cfg , teacher_cfg):
     # Perform the training loop
     logger.info("Start knowledge distillation training")
     
+
+    # TODO: Small work arround to be removed later
+    if type(start_epoch) is not int:
+        start_epoch = 0
+
     for cur_epoch in range(start_epoch, cfg.SOLVER.MAX_EPOCH):
         # Shuffle the dataset
         loader.shuffle_dataset(train_loader, cur_epoch)
@@ -467,6 +483,7 @@ def distill_knowledge(cfg , teacher_cfg):
                 student_optimizer,
                 cur_epoch, 
                 cfg,
+                pruned=True if cfg.PRUNING.ENABLE else False
             )
             
         # Evaluate the model on validation set
@@ -501,7 +518,8 @@ def distill_knowledge(cfg , teacher_cfg):
                             student_model,
                             student_optimizer,
                             cur_epoch,
-                            cfg
+                            cfg,
+                            pruned=True if cfg.PRUNING.ENABLE else False
                         )
                         
                         # Break from training loop
@@ -522,6 +540,7 @@ def distill_knowledge(cfg , teacher_cfg):
             student_optimizer,
             cfg.SOLVER.MAX_EPOCH, 
             cfg,
+            pruned=True if cfg.PRUNING.ENABLE else False
         )
 
 
@@ -554,7 +573,7 @@ def parse_args():
         "--cfg",
         dest="cfg_file",
         help="Path to the distillation config file",
-        default="/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/distilled/SlowFast_to_X3D_M_v3.yaml",
+        default="/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/distilled/SlowFast_to_X3D_M.yaml",
         type=str,
     )
     

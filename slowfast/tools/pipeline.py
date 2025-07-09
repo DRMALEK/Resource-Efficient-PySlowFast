@@ -10,6 +10,8 @@ from fvcore.nn.precise_bn import update_bn_stats
 from slowfast.utils.checkpoint import get_latest_checkpoint, check_file_exists
 from slowfast.utils import logging
 from slowfast.build.lib.slowfast.config.defaults import get_cfg
+from test_net import test
+from train_net import train
 
 def setup_cfg(args):
     """

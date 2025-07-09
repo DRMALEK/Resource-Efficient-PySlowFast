@@ -5,7 +5,7 @@ PRUNING:
   PRUNING_METHOD: 'taylor'
   PRUNING_RATE: 0.25
   PRUNING_MAX_RATE: 0.25
-  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/X3D_M_pruned_exp6/pruning_rate_25/checkpoints/checkpoint_epoch_00040.pyth'
+  CHECKPOINT_FILE_PATH: ''
   CHECKPOINT_TYPE: pytorch
   EVALUATE_AFTER_FINE_TUNNING: True
 
@@ -13,7 +13,7 @@ TRAIN:
   # ENABLE: False # default True
   ENABLE: False
   DATASET: meccano
-  BATCH_SIZE: 16
+  BATCH_SIZE: 32
   EVAL_PERIOD: 5
   CHECKPOINT_PERIOD: 20
   AUTO_RESUME: True
@@ -29,8 +29,9 @@ X3D:
 TEST:
   ENABLE: True
   DATASET: meccano
-  BATCH_SIZE: 128
-  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/X3D_M_pruned_exp5/pruning_rate_25/checkpoints/checkpoint_epoch_00110.pyth'
+  BATCH_SIZE: 64
+  # Make this empty, if you want to use the checkpoint from the fine-tuning stage
+  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp12/checkpoints/checkpoint_epoch_00180.pyth'
   # NUM_SPATIAL_CROPS: 1
   NUM_SPATIAL_CROPS: 3
 
@@ -65,7 +66,7 @@ SOLVER:
   WARMUP_START_LR: 0.01
   OPTIMIZING_METHOD: sgd
   EARLY_STOPPING:
-    ENABLE: True
+    ENABLE: False
     PATIENCE: 3 # since we do evaluation every 5 epochs, this means we will wait for 15 epochs before stopping
     MIN_DELTA: 0.001
     METRIC: "top1_err"  # or "top5_err"
@@ -84,4 +85,4 @@ DATA_LOADER:
 
 NUM_GPUS: 1
 RNG_SEED: 0
-OUTPUT_DIR: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/X3D_M_pruned_exp6'
+OUTPUT_DIR: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp12'

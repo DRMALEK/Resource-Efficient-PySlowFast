@@ -1,5 +1,5 @@
 TRAIN:
-  ENABLE: False
+  ENABLE: True
   DATASET: meccano
   BATCH_SIZE: 12
   EVAL_PERIOD: 5
@@ -9,8 +9,8 @@ TRAIN:
 # Knowledge Distillation specific configs
 DISTILLATION:
   ENABLE: True
-  TEMPERATURE: 6.0
-  ALPHA: 0.5  # Weight for hard loss vs soft loss
+  TEMPERATURE: 4.0
+  ALPHA: 0.7  # Weight for hard loss vs soft loss
   TEACHER_ARCH: slowfast 
   STUDENT_ARCH: x3d
   TEACHER_CFG_FILE: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/distilled/SlowFast_8x8_50_teacher.yaml"    # Path to SlowFast config file
@@ -47,15 +47,15 @@ BN:
   WEIGHT_DECAY: 0.0
 
 SOLVER:
-  BASE_LR: 0.005  # Lower LR for distillation
+  BASE_LR: 0.01  # Lower LR for distillation
   LR_POLICY: cosine
-  MAX_EPOCH: 120 # default is 120
+  MAX_EPOCH: 180 # default is 120
   WEIGHT_DECAY: 5e-5
-  WARMUP_EPOCHS: 20.0
+  WARMUP_EPOCHS: 35.0
   WARMUP_START_LR: 0.001
   OPTIMIZING_METHOD: sgd
   EARLY_STOPPING:
-    ENABLE: True
+    ENABLE: False
     PATIENCE: 3 # since we do evaluation every 5 epochs, this means we will wait for 15 epochs before stopping
     MIN_DELTA: 0.001
     METRIC: "top1_err"  # or "top5_err"
@@ -74,7 +74,7 @@ DATA_LOADER:
 
 NUM_GPUS: 1  # Adjust based on available resources
 RNG_SEED: 42
-OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp3"
+OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp13"
 
 TENSORBOARD:
   ENABLE: True
