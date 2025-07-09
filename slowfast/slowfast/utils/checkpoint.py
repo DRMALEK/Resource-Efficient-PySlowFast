@@ -239,6 +239,10 @@ def load_checkpoint(
 
             print("Checkpoint keys: ", checkpoint.keys())
 
+            logger.info(
+                "Loading pruned model from this path {}.".format(path_to_checkpoint)
+            )
+
             loaded_model = checkpoint["model"]
             
             if optimizer in checkpoint.keys():

@@ -1,5 +1,5 @@
 TRAIN:
-  ENABLE: False
+  ENABLE: True
   DATASET: meccano
   BATCH_SIZE: 12
   EVAL_PERIOD: 5
@@ -7,7 +7,7 @@ TRAIN:
   AUTO_RESUME: True
 
 TEST:
-  ENABLE: True
+  ENABLE: False
   DATASET: meccano
   BATCH_SIZE: 64
   CHECKPOINT_FILE_PATH: ''
@@ -16,7 +16,7 @@ TEST:
 
 # Knowledge Distillation specific configs
 DISTILLATION:
-  ENABLE: False
+  ENABLE: True
   TEMPERATURE: 4.0
   ALPHA: 0.5  # Weight for hard loss vs soft loss
   TEACHER_ARCH: slowfast 
@@ -31,8 +31,7 @@ X3D:
   BOTTLENECK_FACTOR: 2.25
   DIM_C5: 2048
   DIM_C1: 12
-  BN_LIN5: True
-  SCALE_RES2: True
+
 
 DATA:
   PATH_TO_DATA_DIR: '/home/milkyway/Desktop/Student Thesis/Datasets/RGB_frames/'
@@ -83,11 +82,11 @@ DATA_LOADER:
 
 NUM_GPUS: 1  # Adjust based on available resources
 RNG_SEED: 42
-OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp9"
+OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp12"
 
 TENSORBOARD:
   ENABLE: True
 
-
+# It is required to enable pruning for the distillation process
 PRUNING:
   ENABLE: True
