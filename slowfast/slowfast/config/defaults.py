@@ -1164,7 +1164,7 @@ _C.TENSORBOARD.MODEL_VIS.INPUT_VIDEO = False
 # along the batch dimension in `layer1`, we take arr[[1, 2], [1, 2]]
 _C.TENSORBOARD.MODEL_VIS.LAYER_LIST = []
 # Top-k predictions to plot on videos
-_C.TENSORBOARD.MODEL_VIS.TOPK_PREDS = 1
+_C.TENSORBOARD.MODEL_VIS.TOPK_PREDS = 5
 # Colormap to for text boxes and bounding boxes colors
 _C.TENSORBOARD.MODEL_VIS.COLORMAP = "Pastel2"
 # Config for visualization video inputs with Grad-CAM.
@@ -1265,17 +1265,7 @@ _C.DEMO.COMMON_CLASS_THRES = 0.1
 _C.DEMO.UNCOMMON_CLASS_THRES = 0.1
 # This is chosen based on distribution of examples in
 # each classes in AVA dataset.
-_C.DEMO.COMMON_CLASS_NAMES = [
-    "watch (a person)",
-    "talk to (e.g., self, a person, a group)",
-    "listen to (a person)",
-    "touch (an object)",
-    "carry/hold (an object)",
-    "walk",
-    "sit",
-    "lie/sleep",
-    "bend/bow (at the waist)",
-]
+_C.DEMO.COMMON_CLASS_NAMES = []
 # Slow-motion rate for the visualization. The visualized portions of the
 # video will be played `_C.DEMO.SLOWMO` times slower than usual speed.
 _C.DEMO.SLOWMO = 1

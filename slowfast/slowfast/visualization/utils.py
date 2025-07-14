@@ -316,7 +316,29 @@ def process_cv2_inputs(frames, cfg):
     # Sample frames for num_frames specified.
     index = torch.linspace(0, inputs.shape[1] - 1, cfg.DATA.NUM_FRAMES).long()
     inputs = torch.index_select(inputs, 1, index)
+    
+    if cfg.MODEL.ARCH == 'slowfast':
+        fast_pathway = inputs
+
+        print("Fast pathway shape: ", fast_pathway.shape)
+
+        # Perform temporal sampling from the fast pathway.            
+        slow_pathway = torch.index_select(
+            fast_pathway,
+            1,
+            torch.linspace(
+                0, fast_pathway.shape[1] - 1, fast_pathway.shape[1] // cfg.SLOWFAST.ALPHA
+            ).long().to(fast_pathway.device),
+        )
+
+        inputs = [slow_pathway, fast_pathway]
+        return inputs
+
+    
     inputs = pack_pathway_output(cfg, inputs)
+    
+    
+    
     inputs = [inp.unsqueeze(0) for inp in inputs]
     return inputs
 

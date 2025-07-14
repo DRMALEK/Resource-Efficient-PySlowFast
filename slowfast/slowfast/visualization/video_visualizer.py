@@ -350,7 +350,7 @@ class VideoVisualizer:
         self,
         num_classes,
         class_names_path,
-        top_k=1,
+        top_k=5,
         colormap="rainbow",
         thres=0.7,
         lower_thres=0.3,
@@ -430,6 +430,24 @@ class VideoVisualizer:
             if preds.ndim == 1:
                 preds = preds.unsqueeze(0)
             n_instances = preds.shape[0]
+            
+            # Debug: Check prediction dimensions
+            logger.warning(f"Model output shape: {preds.shape}")
+            logger.warning(f"Expected classes: {self.num_classes}")
+            logger.warning(f"Threshold array shape: {self.thres.shape if hasattr(self, 'thres') and isinstance(self.thres, torch.Tensor) else 'scalar'}")
+            
+            # Temporary fix: truncate predictions to match expected classes
+            if preds.shape[1] != self.num_classes:
+                logger.error(f"MISMATCH: Model outputs {preds.shape[1]} classes but visualizer expects {self.num_classes}")
+                logger.error("This indicates you're using a model trained on a different dataset!")
+                logger.error("You should either:")
+                logger.error("1. Use a model trained on your 61-class dataset, or")
+                logger.error("2. Update your class names file to match the model's 1098 classes")
+                
+                # For now, just take the first 61 predictions
+                preds = preds[:, :self.num_classes]
+                logger.warning(f"Truncated predictions to {preds.shape}")
+                
         elif isinstance(preds, list):
             n_instances = len(preds)
         else:

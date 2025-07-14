@@ -14,6 +14,8 @@ from slowfast.datasets import cv2_transform
 from slowfast.models import build_model
 from slowfast.utils import logging
 from slowfast.visualization.utils import process_cv2_inputs
+from slowfast.datasets.meccano import Meccano
+from slowfast.datasets.transform import transforms
 
 logger = logging.get_logger(__name__)
 
@@ -35,6 +37,9 @@ class Predictor:
 
         # Build the video model and print model statistics.
         self.model = build_model(cfg, gpu_id=gpu_id)
+        
+        print("Model: ", self.model)
+        
         self.model.eval()
         self.cfg = cfg
 
@@ -43,7 +48,9 @@ class Predictor:
 
         logger.info("Start loading model weights.")
         
+        
         if cfg.PRUNING.ENABLE:
+            # Load the pruned model.
             self.model = cu.load_test_checkpoint(cfg, self.model, prunned=True)
         else:
             cu.load_test_checkpoint(cfg, self.model)
@@ -75,10 +82,33 @@ class Predictor:
         if self.cfg.DEMO.INPUT_FORMAT == "BGR":
             frames = [cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) for frame in frames]
 
-        frames = [
-            cv2_transform.scale(self.cfg.DATA.TEST_CROP_SIZE, frame) for frame in frames
-        ]
+        
+        # Old preprocessing logic
+        
+        if self.cfg.MODEL.ARCH == "x3d":
+            frames = [
+                cv2_transform.center_crop(self.cfg.DATA.TEST_CROP_SIZE, frame) for frame in frames
+            ]
+        else:
+            frames = [
+                cv2_transform.scale(self.cfg.DATA.TEST_CROP_SIZE, frame) for frame in frames
+            ]
+
         inputs = process_cv2_inputs(frames, self.cfg)
+
+        if self.cfg.MODEL.ARCH == "slowfast":
+            # add batch dimension
+            inputs = [ input_frame.unsqueeze(0) for input_frame in inputs ]
+
+
+        print("Inputs shape: ", inputs[0].shape)
+        # Add these debug prints
+        print("Number of pathways:", len(inputs))
+        for i, inp in enumerate(inputs):
+            print(f"Pathway {i} shape: {inp.shape}")
+        print("Expected NUM_FRAMES:", self.cfg.DATA.NUM_FRAMES)
+        print("SlowFast ALPHA:", self.cfg.SLOWFAST.ALPHA)
+
         if bboxes is not None:
             index_pad = torch.full(
                 size=(bboxes.shape[0], 1),
@@ -102,14 +132,16 @@ class Predictor:
         if self.cfg.DETECTION.ENABLE and not bboxes.shape[0]:
             preds = torch.tensor([])
         else:
-            preds = self.model(inputs, bboxes)
+            preds = self.model(inputs)
 
         if self.cfg.NUM_GPUS:
             preds = preds.cpu()
             if bboxes is not None:
                 bboxes = bboxes.detach().cpu()
 
+
         preds = preds.detach()
+            
         task.add_action_preds(preds)
         if bboxes is not None:
             task.add_bboxes(bboxes[:, 1:])
