@@ -82,7 +82,7 @@ DATA_LOADER:
 
 NUM_GPUS: 1  # Adjust based on available resources
 RNG_SEED: 42
-OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp12"
+OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp15"
 
 TENSORBOARD:
   ENABLE: True

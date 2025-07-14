@@ -93,7 +93,7 @@ def pack_pathway_output(cfg, frames):
         frames = frames[[2, 1, 0], :, :, :]
     if cfg.MODEL.ARCH in cfg.MODEL.SINGLE_PATHWAY_ARCH:
         frame_list = [frames]
-    elif cfg.MODEL.ARCH in cfg.MODEL.MULTI_PATHWAY_ARCH:   
+    elif cfg.MODEL.ARCH in cfg.MODEL.MULTI_PATHWAY_ARCH:           
         fast_pathway = frames
         # Perform temporal sampling from the fast pathway.            
         slow_pathway = torch.index_select(

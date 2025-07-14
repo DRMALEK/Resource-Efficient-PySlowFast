@@ -247,7 +247,7 @@ def load_checkpoint(
 
     if pruned:
         with pathmgr.open(path_to_checkpoint, "rb") as f:
-            checkpoint = torch.load(f, weights_only=weights_only)
+            checkpoint = torch.load(f, weights_only=weights_only, map_location="cpu")
 
             print("Checkpoint keys: ", checkpoint.keys())
 

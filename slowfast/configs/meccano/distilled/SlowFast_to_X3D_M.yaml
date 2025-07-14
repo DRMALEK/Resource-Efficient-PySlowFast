@@ -10,7 +10,7 @@ TRAIN:
 DISTILLATION:
   ENABLE: True
   TEMPERATURE: 4.0
-  ALPHA: 0.9  # Weight for hard loss vs soft loss
+  ALPHA: 1.0  # Weight for hard loss vs soft loss
   TEACHER_ARCH: slowfast 
   STUDENT_ARCH: x3d
   TEACHER_CFG_FILE: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/distilled/SlowFast_8x8_50_teacher.yaml"    # Path to SlowFast config file
@@ -74,7 +74,7 @@ DATA_LOADER:
 
 NUM_GPUS: 1  # Adjust based on available resources
 RNG_SEED: 42
-OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp14"
+OUTPUT_DIR: "/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp15"
 
 TENSORBOARD:
   ENABLE: True
