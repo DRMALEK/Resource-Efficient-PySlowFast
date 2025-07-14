@@ -42,7 +42,12 @@ class Predictor:
             self.object_detector = Detectron2Predictor(cfg, gpu_id=self.gpu_id)
 
         logger.info("Start loading model weights.")
-        cu.load_test_checkpoint(cfg, self.model)
+        
+        if cfg.PRUNING.ENABLE:
+            self.model = cu.load_test_checkpoint(cfg, self.model, prunned=True)
+        else:
+            cu.load_test_checkpoint(cfg, self.model)
+        
         logger.info("Finish loading model weights")
 
     def __call__(self, task):

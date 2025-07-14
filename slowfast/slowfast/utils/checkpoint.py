@@ -235,7 +235,7 @@ def load_checkpoint(
 
     if pruned:
         with pathmgr.open(path_to_checkpoint, "rb") as f:
-            checkpoint = torch.load(f, weights_only=weights_only)
+            checkpoint = torch.load(f, weights_only=weights_only, map_location="cpu")
 
             print("Checkpoint keys: ", checkpoint.keys())
 
@@ -686,7 +686,7 @@ def load_test_checkpoint(cfg, model, quantized=False, prunned=False, weights_onl
                 inflation=False,
                 convert_from_caffe2=cfg.TEST.CHECKPOINT_TYPE == "caffe2",
                 weights_only=weights_only,
-                pruned=True
+                pruned=True,
             )
         else:
             load_checkpoint(

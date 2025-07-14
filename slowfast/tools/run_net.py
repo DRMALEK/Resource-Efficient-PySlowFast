@@ -7,7 +7,8 @@ import os
 import sys
 
 # Add the path to the slowfast module or via export 'export PYTHONPATH=/path/to/SlowFast/slowfast:$PYTHONPATH'
-sys.path.insert(0, '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast')
+sys.path.insert(0, '/home/malek/Master Thesis/Code/slowfast')
+
 
 
 from slowfast.config.defaults import assert_and_infer_cfg

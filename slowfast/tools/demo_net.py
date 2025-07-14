@@ -6,6 +6,10 @@ import time
 import numpy as np
 import torch
 import tqdm
+import sys
+
+# Add the path to the slowfast module or via export 'export PYTHONPATH=/path/to/SlowFast/slowfast:$PYTHONPATH'
+sys.path.insert(0, '/home/malek/Master Thesis/Code/slowfast')
 
 from slowfast.utils import logging
 from slowfast.visualization.async_predictor import AsyncDemo, AsyncVis
