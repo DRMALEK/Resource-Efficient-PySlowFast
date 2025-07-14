@@ -2,12 +2,12 @@ PRUNING:
   ENABLE: True
   GLOBAL: True
   ISOMORPHIC: True
-  PRUNING_METHOD: 'taylor'
+  PRUNING_METHOD: 'l1'
   PRUNING_RATE: 0.25
   PRUNING_MAX_RATE: 0.25
-  CHECKPOINT_FILE_PATH: ''
+  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/results/x3d_M_exp1/checkpoints/checkpoint_epoch_00120.pyth'
   CHECKPOINT_TYPE: pytorch
-  EVALUATE_AFTER_FINE_TUNNING: True
+  EVALUATE_AFTER_FINE_TUNNING: False
 
 TRAIN:
   # ENABLE: False # default True
@@ -31,7 +31,8 @@ TEST:
   DATASET: meccano
   BATCH_SIZE: 64
   # Make this empty, if you want to use the checkpoint from the fine-tuning stage
-  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp12/checkpoints/checkpoint_epoch_00180.pyth'
+  #CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp12/checkpoints/checkpoint_epoch_00180.pyth'
+  CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/X3D_M_pruned_exp10/pruning_rate_25/checkpoints/checkpoint_epoch_00120.pyth'
   # NUM_SPATIAL_CROPS: 1
   NUM_SPATIAL_CROPS: 3
 
@@ -85,4 +86,4 @@ DATA_LOADER:
 
 NUM_GPUS: 1
 RNG_SEED: 0
-OUTPUT_DIR: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp12'
+OUTPUT_DIR: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/X3D_M_pruned_exp10'

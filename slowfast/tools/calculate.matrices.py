@@ -127,23 +127,23 @@ def main():
 
     print("\nMeasuring inference speed...")
     
-    for batch_size in batch_sizes:
-        # Duplicate the input to simulate a batch
-        if isinstance(inputs, (list,)):
-            batch_inputs = [x.repeat(batch_size, 1, 1, 1, 1) for x in inputs]
-        else:
-            batch_inputs = inputs.repeat(batch_size, 1, 1, 1, 1)
-        
-        # Measure FPS and CPU time
-        with torch.no_grad():
-            print(batch_inputs[0].shape)
-            cpu_time, fps, _, _ = measure_cpu_time_and_fps(model, batch_inputs, num_warmup=50, num_iterations=1000)
-
-
-        print(f"\nResults for batch size {batch_size}:")
-        print(f"  - Average FPS: {fps:.2f}")
-        print(f"  - Time per frame: {1000/fps:.2f} ms")
-        print(f"  - Average CPU time per forward pass: {cpu_time} seconds")
+    #for batch_size in batch_sizes:
+    #    # Duplicate the input to simulate a batch
+    #    if isinstance(inputs, (list,)):
+    #        batch_inputs = [x.repeat(batch_size, 1, 1, 1, 1) for x in inputs]
+    #    else:
+    #        batch_inputs = inputs.repeat(batch_size, 1, 1, 1, 1)
+    #    
+    #    # Measure FPS and CPU time
+    #    with torch.no_grad():
+    #        print(batch_inputs[0].shape)
+    #        cpu_time, fps, _, _ = measure_cpu_time_and_fps(model, batch_inputs, num_warmup=50, num_iterations=1000)
+    #
+    #
+    #    print(f"\nResults for batch size {batch_size}:")
+    #    print(f"  - Average FPS: {fps:.2f}")
+    #    print(f"  - Time per frame: {1000/fps:.2f} ms")
+    #    print(f"  - Average CPU time per forward pass: {cpu_time} seconds")
     
     # Model information
     params = sum(p.numel() for p in model.parameters())
@@ -155,8 +155,11 @@ def main():
 
     # Calculate model FLOPs
     inputs_flops = [inp[0:1].clone() for inp in inputs]  # Take only the first item in batch for FLOP calculation
-    flops, _ = misc.log_model_info(model, cfg, use_train_input=False)
+    flops, parameters = misc.log_model_info(model, cfg, use_train_input=False)
+    
     print(f"Model FLOPs: {flops:,}")
+    print(f"Model parameters: {parameters:,}")
+
 
 if __name__ == "__main__":
     main()
