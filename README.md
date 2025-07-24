@@ -1,32 +1,61 @@
-# SlowFast for MECCANO
+# Resource-efficient Deep Learning Framework for Industrial Activity Recognition
 
-A fork of [facebookresearch/SlowFast](https://github.com/facebookresearch/SlowFast) with custom additions to support the [MECCANO dataset](https://github.com/fpv-iplab/MECCANO): a multimodal egocentric video dataset for understanding human-object interactions in industrial-like settings.
-
----
+This repository is part of a Master's thesis titled "Resource-efficient Deep Learning for Real-time Recognition of Worker Activities During Industrial Assembly". The project extends the PySlowFast framework with advanced capabilities for efficient deep learning in industrial settings.
 
 ## Table of Contents
 
-- [About This Project](#about-this-project)
-- [MECCANO Dataset Overview](#meccano-dataset-overview)
+- [About The Project](#about-the-project)
+- [Framework Architecture](#framework-architecture)
 - [Installation](#installation)
-    - [Requirements](#requirements)
-    - [Install Dependencies](#install-dependencies)
-    - [Build from Source](#build-from-source)
 - [Usage](#usage)
-    - [Before Running](#before-running)
-    - [Training](#training)
-- [Citing](#citing)
-- [Acknowledgements](#acknowledgements)
+- [Training](#training)
+- [Testing](#testing)
+- [Demo](#demo)
+- [Benchmarking](#benchmarking)
+- [Model Optimization](#model-optimization)
+  - [Pruning](#pruning)
+  - [Knowledge Distillation](#knowledge-distillation)
+- [End-to-End Pipeline](#end-to-end-pipeline)
 
----
+## About The Project
 
-## About This Project
+This repository extends the original [PySlowFast](https://github.com/facebookresearch/SlowFast) framework with comprehensive additions focused on resource-efficient deep learning for industrial applications. Key enhancements include:
 
-This repository extends the original [SlowFast](https://github.com/facebookresearch/SlowFast) video understanding codebase to enable research on the MECCANO dataset. The modifications include:
+- Model compression through structured pruning
+- Knowledge distillation capabilities
+- Industrial activity recognition optimizations
+- Resource-efficient inference pipeline
+- Integration with the MECCANO dataset for industrial assembly tasks
 
-- Custom dataloaders and configuration files for MECCANO
-- Support for egocentric action recognition and human-object interaction tasks
-- Integration with Detectron2 and PyTorchVideo for advanced video and object detection pipelines
+The framework is designed to balance high accuracy with computational efficiency, making it suitable for real-world industrial deployments.
+
+## Framework Architecture
+
+```
+                                                     
+┌─────────────────┐     ┌──────────────────┐
+│  Input Video    │     │  Model Training   │
+│    Stream       │────▶│   & Validation   │
+└─────────────────┘     └──────────┬───────┘
+                                   │
+                         ┌─────────▼───────┐
+                         │  Optimization    │
+                         │    Pipeline     │
+                         └─────────┬───────┘
+                                  │
+                    ┌─────────────┴──────────┐
+                    │                        │
+          ┌─────────▼─────────┐   ┌─────────▼─────────┐
+          │     Pruning       │   │    Knowledge      │
+          │    Framework      │   │   Distillation    │
+          └─────────┬─────────┘   └─────────┬─────────┘
+                    │                       │
+                    └──────────┬────────────┘
+                              │
+                     ┌────────▼─────────┐
+                     │   Deployment     │
+                     │    Pipeline      │
+                     └──────────────────┘
 
 ---
 
@@ -48,7 +77,7 @@ The [MECCANO dataset](https://github.com/fpv-iplab/MECCANO) is the first egocent
 
 - Python == 3.12
 - GCC >= 4.9
-- All libraries listed in `requirements.txt`
+- All dependencies listed in `requirements.txt`
 
 Additionally, you must build **Detectron2** and **PyTorchVideo** from source.
 
@@ -60,20 +89,14 @@ Install the core dependencies:
 pip install -r requirements.txt
 ```
 
-
-### Build from Source
-
-#### Detectron2
+4. Build required components from source:
 
 ```bash
+# Install Detectron2
 git clone https://github.com/facebookresearch/detectron2 detectron2_repo
 pip install -e detectron2_repo
-```
 
-
-#### PyTorchVideo
-
-```bash
+# Install PyTorchVideo
 git clone https://github.com/facebookresearch/pytorchvideo.git
 cd pytorchvideo
 pip install -e .
@@ -84,26 +107,119 @@ pip install -e .
 
 ## Usage
 
-### Before Running
+### Configuration
 
-Add this directory to your `$PYTHONPATH`:
-
-```bash
-export PYTHONPATH=/path/to/SlowFast/slowfast:$PYTHONPATH
+Example configuration file (`configs/MECCANO/SLOWFAST_8x8_R50.yaml`):
+```yaml
+MODEL:
+  NUM_CLASSES: 61
+  ARCH: slowfast
+  MODEL_NAME: SlowFast
+  LOSS_FUNC: cross_entropy
+  DROPOUT_RATE: 0.5
+SLOWFAST:
+  ALPHA: 8
+  BETA_INV: 8
+  FUSION_CONV_CHANNEL_RATIO: 2
+  FUSION_KERNEL_SZ: 7
+TRAIN:
+  BATCH_SIZE: 16
+  EVAL_PERIOD: 10
+  CHECKPOINT_PERIOD: 1
+  AUTO_RESUME: True
+DATA:
+  NUM_FRAMES: 32
+  SAMPLING_RATE: 2
+  TRAIN_JITTER_SCALES: [256, 320]
+  TRAIN_CROP_SIZE: 224
+  TEST_CROP_SIZE: 256
+  INPUT_CHANNEL_NUM: [3, 3]
+SOLVER:
+  BASE_LR: 0.01
+  LR_POLICY: cosine
+  MAX_EPOCH: 196
+  MOMENTUM: 0.9
+  WEIGHT_DECAY: 1e-4
+  WARMUP_EPOCHS: 34.0
+  WARMUP_START_LR: 0.01
+  OPTIMIZING_METHOD: sgd
 ```
-
 
 ### Training
 
-Run the training pipeline with:
-
+1. Set environment variables:
 ```bash
-python tools/run_net.py --cfg configs/Kinetics/C2D_8x8_R50.yaml NUM_GPUS 1 TRAIN.BATCH_SIZE 8 SOLVER.BASE_LR 0.0125 DATA.PATH_TO_DATA_DIR path_to_your_data_folder
+export PYTHONPATH=/path/to/framework:$PYTHONPATH
 ```
 
-Replace `path_to_your_data_folder` with the path to your MECCANO dataset.
+2. Start training:
+```bash
+python tools/run_net.py \
+  --cfg configs/MECCANO/SLOWFAST_8x8_R50.yaml \
+  NUM_GPUS 1 \
+  TRAIN.BATCH_SIZE 8 \
+  SOLVER.BASE_LR 0.01 \
+  DATA.PATH_TO_DATA_DIR /path/to/meccano_dataset
+```
 
----
+### Testing
+
+Evaluate a trained model:
+```bash
+python tools/run_net.py \
+  --cfg configs/MECCANO/SLOWFAST_8x8_R50.yaml \
+  --eval \
+  TEST.CHECKPOINT_FILE_PATH /path/to/checkpoint.pyth
+```
+
+### Demo
+
+Run inference on a video:
+```bash
+python tools/demo.py \
+  --cfg configs/MECCANO/SLOWFAST_8x8_R50.yaml \
+  --input_video path/to/video.mp4 \
+  --checkpoint /path/to/checkpoint.pyth
+```
+
+### Benchmarking
+
+Measure model performance:
+```bash
+python tools/benchmark.py \
+  --cfg configs/MECCANO/SLOWFAST_8x8_R50.yaml \
+  --model_path /path/to/checkpoint.pyth
+```
+
+### Model Optimization
+
+#### Pruning
+```bash
+python tools/prune.py \
+  --cfg configs/MECCANO/SLOWFAST_8x8_R50.yaml \
+  --model_path /path/to/checkpoint.pyth \
+  --prune_ratio 0.5 \
+  --method l1_structured
+```
+
+#### Knowledge Distillation
+```bash
+python tools/distill.py \
+  --teacher_cfg configs/MECCANO/SLOWFAST_8x8_R50.yaml \
+  --student_cfg configs/MECCANO/MOBILE_8x8.yaml \
+  --teacher_model /path/to/teacher.pyth \
+  --temperature 4.0
+```
+
+### End-to-End Pipeline
+
+Run the complete optimization pipeline:
+```bash
+bash scripts/run_pipeline.sh \
+  --config configs/MECCANO/SLOWFAST_8x8_R50.yaml \
+  --data_dir /path/to/meccano_dataset \
+  --output_dir /path/to/output
+```
 
 ## Acknowledgements
 
