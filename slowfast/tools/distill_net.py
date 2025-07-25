@@ -6,7 +6,6 @@ Knowledge Distillation Training Script for SlowFast to X3D-M.
 This script performs knowledge distillation from a larger teacher model (SlowFast)
 to a smaller student model (X3D-M).
 """
-
 import numpy as np
 import pprint
 import torch
@@ -20,7 +19,6 @@ from fvcore.nn.precise_bn import update_bn_stats
 # Add the path to the slowfast module or via export 'export PYTHONPATH=/path/to/SlowFast:$PYTHONPATH'
 #sys.path.insert(0, '/workspace/Code/slowfast')
 sys.path.insert(0, '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast')
-
 
 from slowfast.datasets.utils import pack_pathway_output
 import slowfast.models.losses as losses

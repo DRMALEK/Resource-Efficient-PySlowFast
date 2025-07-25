@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-
-"""Model pruning script using torch-pruning library."""
-
 import argparse
 import os
 import torch
@@ -10,9 +5,6 @@ import torch_pruning as tp
 import numpy as np
 from functools import partial
 import sys
-
-# Add the path to the slowfast module or via export 'export PYTHONPATH=/path/to/SlowFast/slowfast:$PYTHONPATH'
-sys.path.insert(0, '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast')
 
 from slowfast.utils.parser import load_config, parse_args
 from slowfast.models import build_model
@@ -30,17 +22,10 @@ logger = logging.get_logger(__name__)
 
 def parse_custom_args():
     parser = argparse.ArgumentParser(description="X3D Model Pruning Pipeline with torch-pruning")
+    
     parser.add_argument("--cfg", dest="cfg_file", help="Path to the config file", 
                       default="/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/configs/meccano/pruned/X3D_M_Pruned.yaml", type=str)
     
-    # Pruning arguments
-#    parser.add_argument("--pruning_method", help="Pruning method", 
-#                      choices=["l1", "l2", "fpgm", "random"], default="l1")
-#    parser.add_argument("--pruning_ratio", help="Target pruning ratio (0.0-1.0)", type=float, default=0.25)
-#    parser.add_argument("--eval_after_finetune", help="Evaluate model after finetuning", default=True)
-#    parser.add_argument("--global_pruning", help="Use global pruning strategy", default=False)
-#    parser.add_argument("--max-epoch", help="Number of epochs for finetuning", type=int, default=1)
-
     return parser.parse_args()
 
 def setup_cfg(args):
@@ -258,17 +243,15 @@ def evaluate_model(cfg):
     logger.info(f"Model evaluation results: {results}")
     return results
 
-def run_pipeline(args):
+def run_pruning_pipeline(args):
     """
     Run the complete pruning pipeline based on the specified mode
     """
     cfg = setup_cfg(args)
-    
-    pruning_max_rate = cfg.PRUNING.PRUNING_MAX_RATE
     output_dir = cfg.OUTPUT_DIR
     starting_prune_rate = cfg.PRUNING.PRUNING_RATE
 
-    while starting_prune_rate <= pruning_max_rate:
+    while starting_prune_rate <= cfg.PRUNING.PRUNING_MAX_RATE:
         cfg.PRUNING.PRUNING_RATE = starting_prune_rate
         logger.info(f"Starting pruning with rate: {starting_prune_rate}")
         
@@ -289,8 +272,10 @@ def run_pipeline(args):
         pruned_model_path = prune_model(cfg, args)
         logger.info("Model pruning completed.")
 
-        finetune_model(cfg, pruned_model_path)
-        logger.info("Model finetuning completed.")
+        if cfg.PRUNING.FINE_TUNING_AFTER_PRUNING:
+            logger.info("Starting model finetuning...")
+            finetune_model(cfg, pruned_model_path)
+            logger.info("Model finetuning completed.")
 
         if cfg.PRUNING.EVALUATE_AFTER_FINE_TUNNING:
             evaluate_model(cfg)
@@ -300,8 +285,8 @@ def run_pipeline(args):
         logger.info(f"Next pruning rate: {starting_prune_rate}")
 
 def main():
-    args = parse_custom_args()    
-    run_pipeline(args)
+    args = parse_custom_args()
+    run_pruning_pipeline(args)
 
 if __name__ == "__main__":
     main()
