@@ -17,7 +17,10 @@ from demo_net import demo
 from test_net import test
 from train_net import train
 from visualization import visualize
+import slowfast.utils.logging as logging
 
+# Set up proper logging
+logger = logging.get_logger(__name__)
 
 
 def main():
@@ -26,6 +29,7 @@ def main():
     """
     args = parse_args()
     print("config files: {}".format(args.cfg_files))
+
     for path_to_config in args.cfg_files:
         cfg = load_config(args, path_to_config)
         cfg = assert_and_infer_cfg(cfg)
@@ -33,6 +37,7 @@ def main():
         # Perform training.
         if cfg.TRAIN.ENABLE:
             launch_job(cfg=cfg, init_method=args.init_method, func=train)
+            logger.info("Training completed.")
 
         # Perform Pruning (Pruning and benchmarking).
         if cfg.PRUNING.ENABLE:
