@@ -95,7 +95,6 @@ pip install -e detectron2_repo
 
 # Install PyTorchVideo
 git clone https://github.com/facebookresearch/pytorchvideo.git
-cd pytorchvideo
 pip install -e pytorchvideo
 ```
 
