@@ -24,11 +24,10 @@ This repository extends the original [PySlowFast](https://github.com/facebookres
 
 - Model compression through structured pruning
 - Knowledge distillation capabilities
-- Industrial activity recognition optimizations
-- Resource-efficient inference pipeline
+- Resource-efficient inference benchmarking 
 - Integration with the MECCANO dataset for industrial assembly tasks
 
-The framework is designed to balance high accuracy with computational efficiency, making it suitable for real-world industrial deployments.
+The framework is designed to strike a balance between high accuracy and computational efficiency, making it suitable for real-world industrial deployments.
 
 ## Framework Architecture
 
