@@ -86,7 +86,7 @@ Install the core dependencies:
 pip install -r requirements.txt
 ```
 
-4. Build required components from source:
+Build required components from source:
 
 ```bash
 # Install Detectron2
@@ -96,7 +96,7 @@ pip install -e detectron2_repo
 # Install PyTorchVideo
 git clone https://github.com/facebookresearch/pytorchvideo.git
 cd pytorchvideo
-pip install -e .
+pip install -e pytorchvideo
 ```
 
 
