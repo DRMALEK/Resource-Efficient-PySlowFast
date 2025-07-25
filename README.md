@@ -94,8 +94,8 @@ git clone https://github.com/facebookresearch/detectron2 detectron2_repo
 pip install -e detectron2_repo
 
 # Install PyTorchVideo
-git clone https://github.com/facebookresearch/pytorchvideo.git
-pip install -e pytorchvideo
+git clone https://github.com/facebookresearch/pytorchvideo.git pyTorchVideo_repo
+pip install -e pyTorchVideo_repo
 ```
 
 
