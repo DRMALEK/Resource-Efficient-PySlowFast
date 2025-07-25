@@ -19,6 +19,14 @@ from train_net import train
 from visualization import visualize
 import slowfast.utils.logging as logging
 
+
+# Our custom additions
+# https://github.com/DRMALEK/Resource-Efficient-PySlowFast
+from slowfast.tools.prune_net import prune
+
+
+
+
 # Set up proper logging
 logger = logging.get_logger(__name__)
 
@@ -41,7 +49,8 @@ def main():
 
         # Perform Pruning (Pruning and benchmarking).
         if cfg.PRUNING.ENABLE:
-            pass
+            launch_job(cfg=cfg, init_method=args.init_method, func=prune)
+            logger.info("Pruning completed.")
 
         # Perform Fine-tuning.
         if cfg.FINE_TUNING.ENABLE:

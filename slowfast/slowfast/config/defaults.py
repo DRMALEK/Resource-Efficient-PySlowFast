@@ -1340,6 +1340,7 @@ _C.PRUNING.FINE_TUNING_AFTER_PRUNING = False
 
 _C.PRUNING.EVALUATE_AFTER_FINE_TUNNING = False
 
+_C.PRUNING.BENCHMARK_AFTER_PRUNING = False
 
 def assert_and_infer_cfg(cfg):
     # BN assertions.

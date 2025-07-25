@@ -280,15 +280,18 @@ def run_pruning_pipeline(cfg):
             evaluate_model(cfg, pruned_model_path)
             logger.info("Model evaluation completed.")
 
+        if cfg.PRUNING.BENCHMARK_AFTER_PRUNING:
+            logger.info("Starting model benchmarking...")
+            # Here you would implement the benchmarking logic
+            # For example, measuring inference time, accuracy, etc.
+            # benchmark_model(cfg, pruned_model_path)
+            logger.info("Model benchmarking completed.")
+
         starting_prune_rate += 0.05
         logger.info(f"Next pruning rate: {starting_prune_rate}")
 
-def main():
-    args = parse_custom_args()
-    cfg = setup_cfg(args)
-    logger.info("Configuration loaded successfully.")
-
+def prune(cfg):
+    """
+    Main function to handle the pruning process.
+    """
     run_pruning_pipeline(cfg)
-
-if __name__ == "__main__":
-    main()
