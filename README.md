@@ -29,6 +29,16 @@ This repository extends the original [PySlowFast](https://github.com/facebookres
 
 The framework is designed to strike a balance between high accuracy and computational efficiency, making it suitable for real-world industrial deployments.
 
+## MECCANO Dataset Overview
+
+The [MECCANO dataset](https://github.com/fpv-iplab/MECCANO) is the first egocentric video dataset focused on human-object interactions in industrial-like scenarios. It features:
+
+- **Multimodal data**: RGB, depth, and gaze signals
+- **Annotations**: Temporal (action segments) and spatial (object bounding boxes)
+- **Tasks**: Action Recognition, Active Object Detection, Egocentric Human-Object Interaction (EHOI) Detection, and more
+- **Classes**: 12 verbs, 20 objects, 61 unique actions
+- **Acquisition**: 20 subjects, 2 countries, 1920x1080@12fps, over 8,800 video segments and 64,000+ bounding box annotations[^8][^11][^14]
+
 ## Framework Architecture
 
 ```
@@ -58,17 +68,6 @@ The framework is designed to strike a balance between high accuracy and computat
                      └──────────────────┘
 
 ```
-
-## MECCANO Dataset Overview
-
-The [MECCANO dataset](https://github.com/fpv-iplab/MECCANO) is the first egocentric video dataset focused on human-object interactions in industrial-like scenarios. It features:
-
-- **Multimodal data**: RGB, depth, and gaze signals
-- **Annotations**: Temporal (action segments) and spatial (object bounding boxes)
-- **Tasks**: Action Recognition, Active Object Detection, Egocentric Human-Object Interaction (EHOI) Detection, and more
-- **Classes**: 12 verbs, 20 objects, 61 unique actions
-- **Acquisition**: 20 subjects, 2 countries, 1920x1080@12fps, over 8,800 video segments and 64,000+ bounding box annotations[^8][^11][^14]
-
 ## Installation
 
 ### Requirements
