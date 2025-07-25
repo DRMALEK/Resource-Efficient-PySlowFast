@@ -236,7 +236,6 @@ def evaluate_model(cfg):
     cfg.TRAIN.ENABLE = False
     cfg.TEST.ENABLE = True
     
-
     # Launch evaluation job
     results = test(cfg)
     

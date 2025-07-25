@@ -27,11 +27,10 @@ X3D:
   DIM_C1: 12
 
 TEST:
-  ENABLE: True
+  ENABLE: False
   DATASET: meccano
   BATCH_SIZE: 64
   # Make this empty, if you want to use the checkpoint from the fine-tuning stage
-  #CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp12/checkpoints/checkpoint_epoch_00180.pyth'
   CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/X3D_M_pruned_exp10/pruning_rate_25/checkpoints/checkpoint_epoch_00120.pyth'
   # NUM_SPATIAL_CROPS: 1
   NUM_SPATIAL_CROPS: 3
