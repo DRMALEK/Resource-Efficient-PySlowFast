@@ -16,6 +16,7 @@ This repository is part of a Master's thesis titled "Resource-efficient Deep Lea
   - [Pruning](#pruning)
   - [Knowledge Distillation](#knowledge-distillation)
   - [End-to-End Pipeline](#end-to-end-pipeline)
+- [Acknowledgements](#Acknowledgements)
 
 ## About The Project
 
