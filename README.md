@@ -149,7 +149,7 @@ export PYTHONPATH=/path/to/framework:$PYTHONPATH
 
 ### Training
 
-1. Start training:
+Start training:
 ```bash
 python tools/run_net.py \
   --cfg configs/MECCANO/SLOWFAST_8x8_R50.yaml \
