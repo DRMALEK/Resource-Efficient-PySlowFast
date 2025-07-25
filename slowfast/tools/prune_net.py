@@ -67,7 +67,7 @@ def prepare_dummy_input(cfg):
 
     return inputs
 
-def prune_model(cfg, args):
+def prune_model(cfg):
     """
     Prune the model using torch-pruning
     """
@@ -228,25 +228,25 @@ def finetune_model(cfg, pruned_model_path):
     #launch_job(cfg=cfg, init_method="", func=train)
     train(cfg)
 
-def evaluate_model(cfg):
+def evaluate_model(cfg, pruned_model_path):
     """
     Evaluate the model on validation set
     """
     # Update config for evaluation
     cfg.TRAIN.ENABLE = False
     cfg.TEST.ENABLE = True
-    
+    cfg.TEST.CHECKPOINT_FILE_PATH = pruned_model_path  # Use the pruned model for evaluation
+
     # Launch evaluation job
     results = test(cfg)
     
     logger.info(f"Model evaluation results: {results}")
     return results
 
-def run_pruning_pipeline(args):
+def run_pruning_pipeline(cfg):
     """
     Run the complete pruning pipeline based on the specified mode
     """
-    cfg = setup_cfg(args)
     output_dir = cfg.OUTPUT_DIR
     starting_prune_rate = cfg.PRUNING.PRUNING_RATE
 
@@ -268,16 +268,16 @@ def run_pruning_pipeline(args):
 
         logging.setup_logging(cfg.OUTPUT_DIR)
 
-        pruned_model_path = prune_model(cfg, args)
+        pruned_model_path = prune_model(cfg)
         logger.info("Model pruning completed.")
 
-        if cfg.PRUNING.FINE_TUNING_AFTER_PRUNING:
-            logger.info("Starting model finetuning...")
-            finetune_model(cfg, pruned_model_path)
-            logger.info("Model finetuning completed.")
+        #if cfg.PRUNING.FINE_TUNING_AFTER_PRUNING:
+        #    logger.info("Starting model finetuning...")
+        #    finetune_model(cfg, pruned_model_path)
+        #    logger.info("Model finetuning completed.")
 
         if cfg.PRUNING.EVALUATE_AFTER_FINE_TUNNING:
-            evaluate_model(cfg)
+            evaluate_model(cfg, pruned_model_path)
             logger.info("Model evaluation completed.")
 
         starting_prune_rate += 0.05
@@ -285,7 +285,10 @@ def run_pruning_pipeline(args):
 
 def main():
     args = parse_custom_args()
-    run_pruning_pipeline(args)
+    cfg = setup_cfg(args)
+    logger.info("Configuration loaded successfully.")
+
+    run_pruning_pipeline(cfg)
 
 if __name__ == "__main__":
     main()

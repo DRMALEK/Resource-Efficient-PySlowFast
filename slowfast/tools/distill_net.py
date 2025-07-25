@@ -385,6 +385,8 @@ def distill_knowledge(cfg , teacher_cfg):
         logger.info("Teacher model config:")
         logger.info(pprint.pformat(teacher_cfg))
     
+    # Setup distributed training
+    du.init_distributed_training(cfg)
     
     # Build teacher and student models
     teacher_model = build_teacher_model(cfg, teacher_cfg)
@@ -604,23 +606,8 @@ def load_config(args):
     
     return cfg, teacher_cfg
 
-def main():
-    """
-    Main function to start knowledge distillation training.
-    """
-    # Setup environment
-    args = parse_args()
-    cfg, teacher_cfg = load_config(args)
-
-
+def run_knowledge_distillation(cfg, teacher_cfg):
     logging.setup_logging(cfg.OUTPUT_DIR)
-
-    # Set random seed from configs.
-    np.random.seed(cfg.RNG_SEED)
-    torch.manual_seed(cfg.RNG_SEED)
-    
-    # Setup distributed training
-    du.init_distributed_training(cfg)
 
     # Validate configuration
     if teacher_cfg is None:
@@ -649,6 +636,14 @@ def main():
 
     # Initialize distillation process
     distill_knowledge(cfg, teacher_cfg)
+
+def main():
+    # Setup environment
+    args = parse_args()
+    cfg, teacher_cfg = load_config(args)
+    
+    run_knowledge_distillation(cfg, teacher_cfg)
+
 
 if __name__ == "__main__":
     main()

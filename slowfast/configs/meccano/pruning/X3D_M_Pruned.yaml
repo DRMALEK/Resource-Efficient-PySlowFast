@@ -8,7 +8,6 @@ PRUNING:
   CHECKPOINT_FILE_PATH: '/home/milkyway/Desktop/Student Thesis/results/x3d_M_exp1/checkpoints/checkpoint_epoch_00120.pyth' # Path to the checkpoint file to be pruned
   CHECKPOINT_TYPE: pytorch
   EVALUATE_AFTER_FINE_TUNNING: False # If True, the model will be evaluated after fine-tuning
-  FINE_TUNING_AFTER_PRUNING: False # If True, the model will be fine-tuned after pruning
 
 TRAIN:
   ENABLE: False
