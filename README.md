@@ -57,7 +57,7 @@ The framework is designed to strike a balance between high accuracy and computat
                      │    Pipeline      │
                      └──────────────────┘
 
----
+```
 
 ## MECCANO Dataset Overview
 
@@ -68,8 +68,6 @@ The [MECCANO dataset](https://github.com/fpv-iplab/MECCANO) is the first egocent
 - **Tasks**: Action Recognition, Active Object Detection, Egocentric Human-Object Interaction (EHOI) Detection, and more
 - **Classes**: 12 verbs, 20 objects, 61 unique actions
 - **Acquisition**: 20 subjects, 2 countries, 1920x1080@12fps, over 8,800 video segments and 64,000+ bounding box annotations[^8][^11][^14]
-
----
 
 ## Installation
 
