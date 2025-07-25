@@ -8,14 +8,14 @@ This repository is part of a Master's thesis titled "Resource-efficient Deep Lea
 - [Framework Architecture](#framework-architecture)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Training](#training)
-- [Testing](#testing)
-- [Demo](#demo)
-- [Benchmarking](#benchmarking)
-- [Model Optimization](#model-optimization)
+  - [Training](#training)
+  - [Testing](#testing)
+  - [Demo](#demo)
+  - [Benchmarking](#benchmarking)
+  - [Model Optimization](#model-optimization)
   - [Pruning](#pruning)
   - [Knowledge Distillation](#knowledge-distillation)
-- [End-to-End Pipeline](#end-to-end-pipeline)
+  - [End-to-End Pipeline](#end-to-end-pipeline)
 
 ## About The Project
 
