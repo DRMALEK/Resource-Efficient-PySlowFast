@@ -105,7 +105,7 @@ pip install -e pyTorchVideo_repo
 
 ### Configuration
 
-Example configuration file (`configs/MECCANO/SLOWFAST_8x8_R50.yaml`):
+1. Example configuration file (`configs/MECCANO/SLOWFAST_8x8_R50.yaml`):
 ```yaml
 MODEL:
   NUM_CLASSES: 61
@@ -141,14 +141,15 @@ SOLVER:
   OPTIMIZING_METHOD: sgd
 ```
 
-### Training
-
-1. Set environment variables:
+2. Set environment variables:
 ```bash
 export PYTHONPATH=/path/to/framework:$PYTHONPATH
 ```
 
-2. Start training:
+
+### Training
+
+1. Start training:
 ```bash
 python tools/run_net.py \
   --cfg configs/MECCANO/SLOWFAST_8x8_R50.yaml \
