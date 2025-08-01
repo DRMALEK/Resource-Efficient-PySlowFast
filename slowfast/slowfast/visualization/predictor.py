@@ -44,7 +44,7 @@ class Predictor:
         self.cfg = cfg
 
         if cfg.DETECTION.ENABLE:
-            self.object_detector = Detectron2Predictor(cfg, gpu_id=self.gpu_id)
+            self.object_detector = Detectron2Predictor(cfg, gpu_id=self.gpu_id) 
 
         logger.info("Start loading model weights.")
         
