@@ -276,6 +276,11 @@ class TestMeter:
         self.overall_iters = overall_iters
         self.multi_label = multi_label
         self.ensemble_method = ensemble_method
+        self.num_classes = num_cls
+        # Initialize class-specific metrics
+        self.class_correct = torch.zeros(num_cls)
+        self.class_total = torch.zeros(num_cls)
+        self.class_accuracies = {}
         # Initialize tensors.
         self.video_preds = torch.zeros((num_videos, num_cls))
         if multi_label:
@@ -302,6 +307,10 @@ class TestMeter:
         if self.multi_label:
             self.video_preds -= 1e10
         self.video_labels.zero_()
+        # Reset class-specific metrics
+        self.class_correct.zero_()
+        self.class_total.zero_()
+        self.class_accuracies = {}
 
     def update_stats(self, preds, labels, clip_ids):
         """
@@ -396,14 +405,51 @@ class TestMeter:
             self.stats["top1_acc"] = map_str
             self.stats["top5_acc"] = map_str
         else:
+            # Calculate overall accuracy
             num_topks_correct = metrics.topks_correct(
                 self.video_preds, self.video_labels, ks
             )
             topks = [(x / self.video_preds.size(0)) * 100.0 for x in num_topks_correct]
             assert len({len(ks), len(topks)}) == 1
             for k, topk in zip(ks, topks):
-                # self.stats["top{}_acc".format(k)] = topk.cpu().numpy()
                 self.stats["top{}_acc".format(k)] = "{:.{prec}f}".format(topk, prec=2)
+            
+            # Calculate per-class accuracies
+            pred_labels = torch.argmax(self.video_preds, dim=1)
+            for i in range(len(pred_labels)):
+                true_label = self.video_labels[i]
+                pred_label = pred_labels[i]
+                self.class_total[true_label] += 1
+                if pred_label == true_label:
+                    self.class_correct[true_label] += 1
+            
+            # Calculate and store per-class accuracies
+            class_accuracies = {}
+            valid_class_accuracies = []
+            
+            for i in range(self.num_classes):
+                if self.class_total[i] > 0:
+                    accuracy = (self.class_correct[i] / self.class_total[i] * 100.0).item()
+                    valid_class_accuracies.append(accuracy)
+                    class_accuracies[i] = {
+                        'accuracy': accuracy,
+                        'total_samples': int(self.class_total[i].item()),
+                        'correct_samples': int(self.class_correct[i].item())
+                    }
+                else:
+                    class_accuracies[i] = {
+                        'accuracy': 0.0,
+                        'total_samples': 0,
+                        'correct_samples': 0
+                    }
+            
+            # Calculate mean class accuracy
+            mean_class_accuracy = sum(valid_class_accuracies) / len(valid_class_accuracies) if valid_class_accuracies else 0.0
+            
+            # Add class-specific metrics to stats
+            self.stats['per_class_accuracies'] = class_accuracies
+            self.stats['mean_class_accuracy'] = "{:.{prec}f}".format(mean_class_accuracy, prec=2)
+            
         logging.log_json_stats(self.stats)
 
 
