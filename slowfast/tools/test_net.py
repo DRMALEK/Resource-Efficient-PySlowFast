@@ -291,11 +291,11 @@ def test(cfg):
                 view, cfg.TEST.NUM_SPATIAL_CROPS
             )
         )
-        result_string_views += "_{}a{}" "".format(view, test_meter.stats["top1_acc"])
+        result_string_views += "_{} Top1 Acc: {} ".format(view, test_meter.stats["top1_acc"])
 
         # Log overall metrics
         result_string = (
-            "_p{:.2f}_f{:.2f}_{}a{} Top5 Acc: {} MEM: {:.2f} f: {:.4f}".format(
+            "_p{:.2f}_f{:.2f}_{} Top 1 Acc: {} Top5 Acc: {} MEM: {:.2f} f: {:.4f}".format(
                 params / 1e6,
                 flops,
                 view,
@@ -323,9 +323,8 @@ def test(cfg):
                 )
             
             # Add mean class accuracy to result string
-            result_string += " Mean Class Acc: {:.2f}".format(
-                test_meter.stats.get('mean_class_accuracy', 0.0)
-            )
+            mean_acc = test_meter.stats.get('mean_class_accuracy', "0.00")  # Get the pre-formatted string
+            result_string = result_string + " Mean Class Acc: " + mean_acc
 
         logger.info("{}".format(result_string))
         
