@@ -20,7 +20,7 @@ This repository is part of a Master's thesis titled "Resource-efficient Deep Lea
 
 ## About The Project
 
-This repository extends the original [PySlowFast](https://github.com/facebookresearch/SlowFast) framework with comprehensive additions focused on resource-efficient deep learning for industrial applications. Key enhancements include:
+This repository extends the original [PySlowFast](https://github.com/facebookresearch/SlowFast) framework (By forking it first!), with comprehensive additions focused on resource-efficient deep learning for industrial applications. Key enhancements include:
 
 - Model compression through structured pruning
 - Knowledge distillation capabilities
