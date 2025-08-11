@@ -1,9 +1,0 @@
-{
-    "host": "LocalHost",
-    "port": 22,
-    "user": "root",
-    "ignore":[".git",".vscode"],
-    "remotePath": "/root",
-    "identity_file": "~/.ssh/id_rsa",
-    "uploadOnSave": true
-}
