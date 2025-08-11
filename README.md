@@ -1,11 +1,10 @@
 # Resource-efficient Deep Learning Framework for Industrial Activity Recognition
 
-The project extends the PySlowFast framework with advanced capabilities for efficient deep learning in industrial settings.
+This repository is part of a Master's thesis titled "Resource-efficient Deep Learning for Real-time Recognition of Worker Activities During Industrial Assembly". The project extends the PySlowFast framework with advanced capabilities for efficient deep learning in industrial settings.
 
 ## Table of Contents
 
 - [About The Project](#about-the-project)
-- [Framework Architecture](#framework-architecture)
 - [Installation](#installation)
 - [Usage](#usage)
   - [Training](#training)
@@ -16,6 +15,7 @@ The project extends the PySlowFast framework with advanced capabilities for effi
   - [Pruning](#pruning)
   - [Knowledge Distillation](#knowledge-distillation)
   - [End-to-End Pipeline](#end-to-end-pipeline)
+- [TODO](#TODO)
 - [Acknowledgements](#Acknowledgements)
 
 ## About The Project
@@ -39,35 +39,7 @@ The [MECCANO dataset](https://github.com/fpv-iplab/MECCANO) is the first egocent
 - **Classes**: 12 verbs, 20 objects, 61 unique actions
 - **Acquisition**: 20 subjects, 2 countries, 1920x1080@12fps, over 8,800 video segments and 64,000+ bounding box annotations[^8][^11][^14]
 
-## Framework Architecture
 
-```
-                                                     
-┌─────────────────┐     ┌──────────────────┐
-│  Input Video    │     │  Model Training   │
-│    Stream       │────▶│   & Validation   │
-└─────────────────┘     └──────────┬───────┘
-                                   │
-                         ┌─────────▼───────┐
-                         │  Optimization    │
-                         │    Pipeline     │
-                         └─────────┬───────┘
-                                  │
-                    ┌─────────────┴──────────┐
-                    │                        │
-          ┌─────────▼─────────┐   ┌─────────▼─────────┐
-          │     Pruning       │   │    Knowledge      │
-          │    Framework      │   │   Distillation    │
-          └─────────┬─────────┘   └─────────┬─────────┘
-                    │                       │
-                    └──────────┬────────────┘
-                              │
-                     ┌────────▼─────────┐
-                     │   Deployment     │
-                     │    Pipeline      │
-                     └──────────────────┘
-
-```
 ## Installation
 
 ### Requirements
@@ -218,6 +190,14 @@ bash scripts/run_pipeline.sh \
   --output_dir /path/to/output
 ```
 
+## TODO:
+
+  1. Create a dockerfile
+  2. Complete the pipeline and test it
+  3. Slowly add testing coverage
+  4. Improve the readme.md file
+  5. Add a framework architecture diagram
+  
 ## Acknowledgements
 
 - [facebookresearch/SlowFast](https://github.com/facebookresearch/SlowFast)
