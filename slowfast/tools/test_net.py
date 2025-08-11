@@ -136,6 +136,42 @@ def perform_test(test_loader, model, test_meter, cfg, writer=None):
         if cfg.NUM_GPUS:
             all_preds = all_preds.cpu()
             all_labels = all_labels.cpu()
+            
+        # Calculate per-class accuracies
+        num_classes = all_preds.shape[1]
+        class_correct = torch.zeros(num_classes)
+        class_total = torch.zeros(num_classes)
+        
+        # Get predictions for each video
+        pred_labels = torch.argmax(all_preds, dim=1)
+        
+        # Calculate per-class metrics
+        for i in range(len(pred_labels)):
+            true_label = all_labels[i]
+            pred_label = pred_labels[i]
+            class_total[true_label] += 1
+            if pred_label == true_label:
+                class_correct[true_label] += 1
+        
+        # Calculate per-class accuracies
+        class_accuracies = {}
+        for i in range(num_classes):
+            if class_total[i] > 0:
+                accuracy = (class_correct[i] / class_total[i] * 100.0).item()
+                class_accuracies[i] = {
+                    'accuracy': accuracy,
+                    'total_samples': int(class_total[i].item()),
+                    'correct_samples': int(class_correct[i].item())
+                }
+        
+        # Calculate mean class accuracy
+        valid_accuracies = [acc['accuracy'] for acc in class_accuracies.values() if acc['total_samples'] > 0]
+        mean_class_accuracy = sum(valid_accuracies) / len(valid_accuracies) if valid_accuracies else 0.0
+        
+        # Add to test_meter stats
+        test_meter.stats['per_class_accuracies'] = class_accuracies
+        test_meter.stats['mean_class_accuracy'] = mean_class_accuracy
+        
         if writer is not None:
             writer.plot_eval(preds=all_preds, labels=all_labels)
 
@@ -255,10 +291,11 @@ def test(cfg):
                 view, cfg.TEST.NUM_SPATIAL_CROPS
             )
         )
-        result_string_views += "_{}a{}" "".format(view, test_meter.stats["top1_acc"])
+        result_string_views += "_{} Top1 Acc: {} ".format(view, test_meter.stats["top1_acc"])
 
+        # Log overall metrics
         result_string = (
-            "_p{:.2f}_f{:.2f}_{}a{} Top5 Acc: {} MEM: {:.2f} f: {:.4f}" "".format(
+            "_p{:.2f}_f{:.2f}_{} Top 1 Acc: {} Top5 Acc: {} MEM: {:.2f} f: {:.4f}".format(
                 params / 1e6,
                 flops,
                 view,
@@ -269,6 +306,38 @@ def test(cfg):
             )
         )
 
+        # Log per-class accuracies if available
+        if 'per_class_accuracies' in test_meter.stats:
+            logger.info("\n=== Per-class Accuracies ===")
+            logger.info("Class ID | Accuracy | Samples | Correct")
+            logger.info("-" * 45)
+            
+            for class_id, metrics in test_meter.stats['per_class_accuracies'].items():
+                logger.info(
+                    "{:8d} | {:8.2f}% | {:7d} | {:7d}".format(
+                        class_id,
+                        metrics['accuracy'],
+                        metrics['total_samples'],
+                        metrics['correct_samples']
+                    )
+                )
+            
+            # Add mean class accuracy to result string
+            mean_acc = test_meter.stats.get('mean_class_accuracy', "0.00")  # Get the pre-formatted string
+            result_string = result_string + " Mean Class Acc: " + mean_acc
+
         logger.info("{}".format(result_string))
+        
+        # Save detailed results if path specified
+        if cfg.TEST.SAVE_RESULTS_PATH:
+            save_path = os.path.join(
+                cfg.OUTPUT_DIR, 
+                f"class_accuracies_{view}clips_{cfg.TEST.NUM_SPATIAL_CROPS}crops.pkl"
+            )
+            if du.is_root_proc():
+                with pathmgr.open(save_path, "wb") as f:
+                    pickle.dump(test_meter.stats, f)
+                logger.info(f"Detailed results saved to {save_path}")
+
     logger.info("{}".format(result_string_views))
     return result_string + " \n " + result_string_views

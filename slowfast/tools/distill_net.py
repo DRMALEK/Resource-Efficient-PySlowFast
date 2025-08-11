@@ -435,7 +435,6 @@ def distill_knowledge(cfg , teacher_cfg):
                 cfg.DISTILLATION.STUDENT_CHECKPOINT, student_model, student_optimizer
             )
 
-
     # Setup tensorboard if enabled
     if cfg.TENSORBOARD.ENABLE and du.is_master_proc(
         cfg.NUM_GPUS * cfg.NUM_SHARDS

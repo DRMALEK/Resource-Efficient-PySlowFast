@@ -232,10 +232,23 @@ def load_checkpoint(
         ms = model.module
     else:
         ms = model
+    
+    if quantized:
+        # Load the quantized model.
+        with pathmgr.open(path_to_checkpoint, "rb") as f:
+            checkpoint = torch.load(f, map_location="cpu")
+        ms.load_state_dict(checkpoint, strict=False)
+        epoch = -1
+        if optimizer:
+            optimizer.load_state_dict(checkpoint["optimizer_state"])
+        if scaler:
+            scaler.load_state_dict(checkpoint["scaler_state"])
+        return epoch
 
     if pruned:
         with pathmgr.open(path_to_checkpoint, "rb") as f:
-            checkpoint = torch.load(f, weights_only=weights_only, map_location="cpu")
+            #checkpoint = torch.load(f, weights_only=weights_only, map_location="cpu")
+            checkpoint = torch.load(f, weights_only=weights_only)
 
             print("Checkpoint keys: ", checkpoint.keys())
 
@@ -245,6 +258,8 @@ def load_checkpoint(
 
             loaded_model = checkpoint["model"]
             
+            print("Model architecture: ", loaded_model)
+
             if optimizer in checkpoint.keys():
                 optimizer.load_state_dict(checkpoint["optimizer_state"])
             
