@@ -1,6 +1,6 @@
 # Resource-efficient Deep Learning Framework for Industrial Activity Recognition
 
-This repository is part of a Master's thesis titled "Resource-efficient Deep Learning for Real-time Recognition of Worker Activities During Industrial Assembly". The project extends the PySlowFast framework with advanced capabilities for efficient deep learning in industrial settings.
+The project extends the PySlowFast framework with advanced capabilities for efficient deep learning in industrial settings.
 
 ## Table of Contents
 
