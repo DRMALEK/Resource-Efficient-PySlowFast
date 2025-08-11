@@ -257,6 +257,8 @@ def load_checkpoint(
 
             loaded_model = checkpoint["model"]
             
+            print("Model architecture: ", loaded_model)
+
             if optimizer in checkpoint.keys():
                 optimizer.load_state_dict(checkpoint["optimizer_state"])
             

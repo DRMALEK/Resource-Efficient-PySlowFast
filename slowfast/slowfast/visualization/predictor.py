@@ -103,13 +103,13 @@ class Predictor:
             inputs = [ input_frame.unsqueeze(0) for input_frame in inputs ]
 
 
-        print("Inputs shape: ", inputs[0].shape)
+        #print("Inputs shape: ", inputs[0].shape)
         # Add these debug prints
-        print("Number of pathways:", len(inputs))
-        for i, inp in enumerate(inputs):
-            print(f"Pathway {i} shape: {inp.shape}")
-        print("Expected NUM_FRAMES:", self.cfg.DATA.NUM_FRAMES)
-        print("SlowFast ALPHA:", self.cfg.SLOWFAST.ALPHA)
+        #print("Number of pathways:", len(inputs))
+        #for i, inp in enumerate(inputs):
+        #    print(f"Pathway {i} shape: {inp.shape}")
+        #print("Expected NUM_FRAMES:", self.cfg.DATA.NUM_FRAMES)
+        #print("SlowFast ALPHA:", self.cfg.SLOWFAST.ALPHA)
 
         if bboxes is not None:
             index_pad = torch.full(
@@ -135,6 +135,15 @@ class Predictor:
             preds = torch.tensor([])
         else:
             preds = self.model(inputs)
+
+            # apply softmax to the predictions
+            if self.cfg.PRUNING.ENABLE: 
+                preds = torch.nn.functional.softmax(preds, dim=1)
+       
+
+            #print("Predictions shape: ", preds.shape)
+            #print("first prediction:", preds[0])
+
 
         if self.cfg.NUM_GPUS:
             preds = preds.cpu()

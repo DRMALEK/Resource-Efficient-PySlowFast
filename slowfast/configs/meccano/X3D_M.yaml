@@ -16,11 +16,11 @@ X3D:
 TEST:
   ENABLE: True
   DATASET: meccano
-  BATCH_SIZE: 15
+  BATCH_SIZE: 124
   # CHECKPOINT_FILE_PATH: 'x3d_m.pyth' # 76.21% top1 30-view accuracy to download from the model zoo (optional).
   # NUM_SPATIAL_CROPS: 1
   NUM_SPATIAL_CROPS: 3
-  CHECKPOINT_FILE_PATH: '"/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp8/checkpoints/checkpoint_epoch_00150.pyth"'
+  CHECKPOINT_FILE_PATH: "/home/malek/Master Thesis/Code/demo_files/saved_models/x3d_pruning_KD.pyth"
 DATA:
   PATH_TO_DATA_DIR: '/home/milkyway/Desktop/Student Thesis/Datasets/RGB_frames/'
   NUM_FRAMES: 16
@@ -59,4 +59,18 @@ DATA_LOADER:
   PIN_MEMORY: True
 NUM_GPUS: 0
 RNG_SEED: 0
-OUTPUT_DIR: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/distillation_output_exp8'
+OUTPUT_DIR: '/home/milkyway/Desktop/Student Thesis/Slowfast/slowfast/intermediate_results/best_model_visualization_results'
+
+TENSORBOARD:
+  ENABLE: True
+  LOG_DIR: # Leave empty to use cfg.OUTPUT_DIR/runs-{cfg.TRAIN.DATASET} as path.
+  CLASS_NAMES_PATH: # Path to json file providing class_name - id mapping.
+  CONFUSION_MATRIX:
+    ENABLE: True
+    SUBSET_PATH: # Path to txt file contains class names separated by newline characters.
+                 # Only classes in this file will be visualized in the confusion matrix.
+  HISTOGRAM:
+    ENABLE: True
+    TOP_K: 10   # Top-k most frequently predicted classes for each class in the dataset.
+    SUBSET_PATH: # Path to txt file contains class names separated by newline characters.
+                 # Only classes in this file will be visualized with histograms.
