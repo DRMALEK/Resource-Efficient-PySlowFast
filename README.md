@@ -137,18 +137,23 @@ Evaluate a trained model:
 ```bash
 python tools/run_net.py \
   --cfg configs/MECCANO/SLOWFAST_8x8_R50.yaml \
-  --eval \
-  TEST.CHECKPOINT_FILE_PATH /path/to/checkpoint.pyth
+    DATA.PATH_TO_DATA_DIR /path/to/meccano_dataset \
+    TRAIN.ENABLE False \
+    TEST.CHECKPOINT_FILE_PATH /path/to/checkpoint.pyth
 ```
 
 ### Demo
 
 Run inference on a video:
 ```bash
-python tools/demo.py \
+python tools/run_net.py \
   --cfg configs/MECCANO/SLOWFAST_8x8_R50.yaml \
-  --input_video path/to/video.mp4 \
-  --checkpoint /path/to/checkpoint.pyth
+  ENABLE: True \
+  LABEL_FILE_PATH Path to json file providing class_name - id mapping. \
+  INPUT_VIDEO Path to input video file. \
+  OUTPUT_FILE  Path to output video file to write results to. \
+                Leave an empty string if you would like to display results to a window.
+
 ```
 
 ### Benchmarking
@@ -197,7 +202,7 @@ bash scripts/run_pipeline.sh \
   3. Slowly add testing coverage
   4. Improve the readme.md file
   5. Add a framework architecture diagram
-  
+
 ## Acknowledgements
 
 - [facebookresearch/SlowFast](https://github.com/facebookresearch/SlowFast)
