@@ -208,4 +208,9 @@ bash scripts/run_pipeline.sh \
 - [facebookresearch/SlowFast](https://github.com/facebookresearch/SlowFast)
 - [fpv-iplab/MECCANO](https://github.com/fpv-iplab/MECCANO)
 
+## 📜 License
+
+This project is licensed under the MIT License.
+
 ---
+
